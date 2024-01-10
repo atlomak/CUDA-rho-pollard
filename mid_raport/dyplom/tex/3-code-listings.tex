@@ -1,0 +1,310 @@
+\newpage % Zaleca się otwieranie rozdziału od nowej strony.
+\section{Code listings}
+\subsection{Dodawnie punktów na krzywej eliptycznej nad $\mathbb{R}$}
+
+\begin{lstlisting}[language=python]
+# SageMath kernel
+
+sage: R = P + Q
+sage: R_inv = -R
+
+# Plot elliptic curve
+sage: plot_curve = plot(E, rgbcolor="black", xmax=5)
+
+# Plot points
+sage: plot_p = plot(P, marker="o", rgbcolor="red", size=50)
+sage: p_label = text(
+    "P",
+    P.dehomogenize(2),
+    horizontal_alignment="right",
+    vertical_alignment="bottom",
+    color="black",
+)
+sage: plot_q = plot(Q, marker="o", rgbcolor="red", size=50)
+sage: q_label = text(
+    " Q",
+    Q.dehomogenize(2),
+    horizontal_alignment="left",
+    vertical_alignment="top",
+    color="black",
+)
+sage: plot_r = plot(R, marker="o", rgbcolor="red", size=50)
+sage: r_label = text(
+    "R",
+    R.dehomogenize(2),
+    horizontal_alignment="right",
+    vertical_alignment="bottom",
+    color="black",
+)
+sage: plot_r_inv = plot(R_inv, marker="o", rgbcolor="red", size=50)
+sage: r_inv_label = text(
+    "-R",
+    R_inv.dehomogenize(2),
+    horizontal_alignment="right",
+    vertical_alignment="top",
+    color="black",
+)
+
+sage: p6 = line2d(
+    [P.dehomogenize(2), R_inv.dehomogenize(2)], linestyle="--", rgbcolor="blue"
+)
+sage: p7 = line2d(
+    [R.dehomogenize(2), R_inv.dehomogenize(2)], linestyle="--", rgbcolor="blue"
+)
+
+sage: plot_curve + plot_p + plot_q + plot_r + plot_r_inv + p6 + p7 + p_label + q_label + r_label + r_inv_label
+\end{lstlisting}
+
+\subsection{Dodawnie punktów na krzywej eliptycznej nad $\mathbb{GF}(7)$}
+\begin{lstlisting}[language=python]
+Gf = GF(7)
+
+E = EllipticCurve(Gf,[3,4])
+
+def ell_add(E, P1, P2):
+    a, b, p = E
+    if P1 == "inf": return P2
+    if P2 == "inf": return P1
+    x1, y1 = P1; x2,y2 = P2
+    x1 %= p; y1 %= p; x2 %= p; y2 %= p;
+
+    if x1 == x2 and y1 == p-y2: return "inf"
+
+    if P1 == P2:
+        if y1 == 0: return "inf"
+        lam = (3*x1^2+a) * inverse_mod(2*y1,p)
+    else:
+        lam = (y1-y2) * inverse_mod(x1-x2,p)
+    x3 = lam^2 - x1 - x2
+    y3 = -lam*x3 - y1 + lam*x1
+    return (x3%p, y3%p)
+
+P1 = E.random_point()
+
+p1 = (2,5)
+print(p1)
+for _ in range(9):
+    p1 = ell_add(e, p1, p1)
+    p1 = (Integer(p1[0]),Integer(p1[1]))
+    print(p1)
+
+
+\end{lstlisting}
+
+\subsection{Kryptosystem El-Gamala na $(\mathbb{G}, \cdot)$}
+\begin{lstlisting}[language=python]
+G = Integers(11)
+
+# Bob:
+
+# Private
+x = G(3)
+
+## Public
+g = G(5)
+h = g^x
+
+# Alice:
+
+# Message
+m = G(5)
+
+# Private
+k = G(8)
+
+# Public
+a = g^k
+b = (h^k)*m
+
+# Decrypt Bob:
+b*(a^(-1))^x
+\end{lstlisting}
+
+\subsection{Kryptosystem El-Gamala na krzywej $y^2 = x^3 + x + 6 \in \mathbb{GF}(11)$ }
+\begin{lstlisting}[language=python]
+Gf = GF(11)
+E = EllipticCurve(Gf, [1, 6])
+
+# Alice -> Bob
+
+# Bob private
+m = 7
+
+# Bob public
+P = E(2, 7)
+Q = m * P
+
+
+def alice_encrypt():
+    k = 6  # random secret variable
+    x = 9  # message
+
+    kP = k * P
+    kQ = k * Q
+
+    secret_hash = safe_hash_function(kQ)
+
+    y1 = kP
+    y2 = (x + secret_hash) % 11
+    return (y1, y2)
+
+
+# just mock, should be secure one way hash fucntion
+def safe_hash_function(q):
+    if q == E(8, 3):
+        return 4
+    return 3
+
+
+# Alice sends cypher
+
+cypher = alice_encrypt()
+
+
+def bob_decrypt(cypher):
+    y1 = cypher[0]
+    y2 = cypher[1]
+
+    kQ = m * y1  # m * (kP) / but mP = Q so its kQ
+
+    secret_hash = safe_hash_function(kQ)
+
+    plain_message = (y2 - secret_hash) % 11
+
+    return plain_message
+
+
+bob_decrypt(cypher)
+\end{lstlisting}
+
+
+
+\subsection{Algorytm rho-Pollarda dla grupy multiplikatywnej}
+\begin{lstlisting}[language=python]
+class Group_parameters:
+    def __init__(self, p, n, alpha, beta) -> None:
+        self.p = p
+        self.n = n
+        self.alpha = alpha
+        self.beta = beta
+
+class Triple:
+    def __init__(self, x, a, b) -> None:
+        self.x = x
+        self.a = a
+        self.b = b
+    def __str__(self) -> str:
+        return f"x = {self.x}, a = {self.a}, b = {self.b}"
+
+
+def f(tripe: Triple, group: Group_parameters) -> Triple:
+    if tripe.x % 3 == 1:
+        x = group.beta * tripe.x % group.p
+        a = tripe.a
+        b = tripe.b + 1
+        return Triple(x, a, b)
+    if tripe.x % 3 == 0:
+        x = tripe.x ** 2 % group.p
+        a = tripe.a * 2
+        b = tripe.b * 2
+        return Triple(x, a, b)
+    else:
+        x = group.alpha * tripe.x % group.p
+        a = tripe.a + 1
+        b = tripe.b
+        return Triple(x, a, b)
+
+g = Group_parameters(809, 101, 89, 618)
+
+t1 = f(Triple(1, 0, 0), g)
+t2 = f(t1, g)
+
+
+i = 1
+print('%s %s | %s %s' % (i, t1, 2*i, t2))
+
+i = 2
+while(t1.x != t2.x):
+    t1 = f(t1, g)
+    t2 = f(f(t2, g), g)
+    print('%s %s | %s %s' % (i, t1, 2*i, t2))
+    i=i+1
+
+print(f"Znaleziona kolizja: x: {t1.x}")
+\end{lstlisting}
+
+\subsection{Algorytm rho-Pollarda znajdowania punktów na krzywej eliptycznej}
+\begin{lstlisting}[language=python]
+class Group_parameters:
+    def __init__(self, p, alpha, beta) -> None:
+        self.p = p
+        self.alpha = alpha
+        self.beta = beta
+
+
+class Triple:
+    def __init__(self, x, a, b) -> None:
+        self.x = x  # Point at Elliptic Curve
+        self.a = a  # just a number
+        self.b = b  # just a number
+
+    def __str__(self) -> str:
+        return f"x = {self.x}, a = {self.a}, b = {self.b}"
+
+
+def f(tripe: Triple, group: Group_parameters) -> Triple:
+    #print("Function run")
+    #print(f"Input: {tripe}")
+
+    x_of_xpoint = tripe.x[0]
+    y_of_xpoint = tripe.x[1]
+
+    p = group.p
+
+    if int(y_of_xpoint) % 3 == 1:
+        x = group.beta + tripe.x
+        a = tripe.a
+        b = tripe.b + 1
+        # check 
+        if (x != a * g.alpha + b * g.beta):
+            pass
+            print(f"1 xab: {x} {a} {b}")
+        return Triple(x, a, b)
+    if int(y_of_xpoint) % 3 == 0:
+        x = 2 * tripe.x
+        a = (tripe.a * 2)
+        b = (tripe.b * 2)
+        if (x != a * g.alpha + b * g.beta):
+            pass
+            print(f"2 xab: {x} {a} {b}")
+        return Triple(x, a, b)
+    else:
+        x = group.alpha + tripe.x
+        a = tripe.a + 1
+        b = tripe.b
+        if (x != a * g.alpha + b * g.beta):
+            pass
+            print(f"3 xab: {x} {a} {b}")
+        return Triple(x, a, b)
+
+
+def main(g: Group_parameters, t1):
+    i = 1
+
+    t2 = f(t1, g)
+
+    print("%s %s | %s %s" % (i, t1, 2 * i, t2))
+
+    i = 2
+    while t1.x != t2.x:
+        t1 = f(t1, g)
+        t2 = f(f(t2, g), g)
+        print("%s %s | %s %s" % (i, t1, 2 * i, t2))
+        i = i + 1
+
+    print(f"Found:\nt1: {t1}\nt2: {t2}")
+
+    x = -((t2.a - t1.a) / (t1.b - t2.b))
+
+    print(x)
+\end{lstlisting}
