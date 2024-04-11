@@ -1,8 +1,8 @@
 \newpage % Zaleca się otwieranie rozdziału od nowej strony.
 \section{Code listings}
-\subsection{Dodawnie punktów na krzywej eliptycznej nad $\mathbb{R}$}
+\subsection*{Dodawnie punktów na krzywej eliptycznej nad $\mathbb{R}$}
 
-\begin{lstlisting}[language=python]
+\begin{lstlisting}[language=python, label=sage_1, caption=Dodawnie punktów na krzywej eliptycznej na liczbach rzeczywistych]
 # SageMath kernel
 
 sage: R = P + Q
@@ -55,8 +55,8 @@ sage: p7 = line2d(
 sage: plot_curve + plot_p + plot_q + plot_r + plot_r_inv + p6 + p7 + p_label + q_label + r_label + r_inv_label
 \end{lstlisting}
 
-\subsection{Dodawnie punktów na krzywej eliptycznej nad $\mathbb{GF}(7)$}
-\begin{lstlisting}[language=python]
+\subsection*{Dodawnie punktów na krzywej eliptycznej nad $\mathbb{GF}(7)$}
+\begin{lstlisting}[language=python, label=sage_2, caption=Dodawnie punktów na krzywej eliptycznej zdefiniowanej na GF(7)]
 Gf = GF(7)
 
 E = EllipticCurve(Gf,[3,4])
@@ -91,8 +91,8 @@ for _ in range(9):
 
 \end{lstlisting}
 
-\subsection{Kryptosystem El-Gamala na $(\mathbb{G}, \cdot)$}
-\begin{lstlisting}[language=python]
+\subsection*{Kryptosystem El-Gamala na $(\mathbb{G}, \cdot)$}
+\begin{lstlisting}[language=python, label=sage_3, caption=Kryptosystem El-Gamala]
 G = Integers(11)
 
 # Bob:
@@ -120,8 +120,8 @@ b = (h^k)*m
 b*(a^(-1))^x
 \end{lstlisting}
 
-\subsection{Kryptosystem El-Gamala na krzywej $y^2 = x^3 + x + 6 \in \mathbb{GF}(11)$ }
-\begin{lstlisting}[language=python]
+\subsection*{Kryptosystem El-Gamala na krzywej $y^2 = x^3 + x + 6 \in \mathbb{GF}(11)$ }
+\begin{lstlisting}[language=python, label=sage_3, caption=Kryptosystem El-Gamala na krzywej]
 Gf = GF(11)
 E = EllipticCurve(Gf, [1, 6])
 
@@ -157,7 +157,6 @@ def safe_hash_function(q):
 
 
 # Alice sends cypher
-
 cypher = alice_encrypt()
 
 
@@ -179,8 +178,8 @@ bob_decrypt(cypher)
 
 
 
-\subsection{Algorytm rho-Pollarda dla grupy multiplikatywnej}
-\begin{lstlisting}[language=python]
+\subsection*{Algorytm rho-Pollarda dla grupy multiplikatywnej}
+\begin{lstlisting}[language=python, label=sage_4, caption=Algorytm rho-Pollarda dla grupy multiplikatywnej]
 class Group_parameters:
     def __init__(self, p, n, alpha, beta) -> None:
         self.p = p
@@ -233,8 +232,8 @@ while(t1.x != t2.x):
 print(f"Znaleziona kolizja: x: {t1.x}")
 \end{lstlisting}
 
-\subsection{Algorytm rho-Pollarda znajdowania punktów na krzywej eliptycznej}
-\begin{lstlisting}[language=python]
+\subsection*{Algorytm rho-Pollarda znajdowania punktów na krzywej eliptycznej}
+\begin{lstlisting}[language=python, label=sage_5, caption=Algorytm rho-Pollarda znajdowania punktów na krzywej eliptycznej]
 class Group_parameters:
     def __init__(self, p, alpha, beta) -> None:
         self.p = p

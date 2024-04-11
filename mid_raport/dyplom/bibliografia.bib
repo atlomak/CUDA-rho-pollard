@@ -1,0 +1,77 @@
+Fragment książki (np. zakres stron). 
+@inbook{stinson21,
+  author = "Dauglas R. Stinson, Maura B. Paterson",
+  title = "Kryptografia w teorii i praktyce, Wydanie IV",
+  publisher = "PWN",
+  pages = "274",
+  year = "2021",
+}
+
+@inbook{chrzaszczyk2010,
+  author = {Andrzej Chrzęszczyk},
+  pages = {279},
+  publisher = {btc},
+  title = {Algorytmy teorii liczb i kryptografii},
+  year = {2010},
+}
+
+@article{henry-goldberg-cuda,
+  abstract = {This paper chronicles our experiences using CUDA to implement a
+              parallelized variant of Pollard's rho algorithm to solve discrete
+              logarithms in groups with cryptographically large moduli but smooth
+              order using commodity GPUs. We first discuss some key design
+              constraints imposed by modern GPU architectures and the CUDA
+              framework, and then explain how we were able to implement efficient
+              arbitrary-precision modular multiplication within these
+              constraints. Our implementation can execute roughly 51.9 million
+              768-bit modular multiplications per second-or a whopping 840
+              million 192-bit modular multiplications per second-on a single
+              Nvidia Tesla M2050 GPU card, which is a notable improvement over
+              all previous results on comparable hardware. We leverage this fast
+              modular multiplication in our implementation of the parallel rho
+              algorithm, which can solve discrete logarithms modulo a 1536-bit
+              RSA number with a 2 55-smooth totient in less than two minutes. We
+              conclude the paper by discussing implications to discrete
+              logarithm-based cryptosystems, and by pointing out how efficient
+              implementations of parallel rho (or related algorithms) lead to
+              trapdoor discrete logarithm groups; we also point out two potential
+              cryptographic applications for the latter. Our code is written in C
+              for CUDA and PTX; it is open source and freely available for
+              download online.},
+  author = {Ryan Henry and Ian Goldberg},
+  title = {Solving Discrete Logarithms in Smooth-Order Groups with CUDA 1},
+  url = {http://cacr.uwaterloo.ca/},
+}
+
+@article{rewiev-elliptic-cpu,
+  abstract = {Elliptic Curve Discrete Log Problem (ECDLP) is the underlying
+              basis of many popular Public Key Scheme like Diffie-Hellman and
+              ElGamal. The strength of such public key schemes is based on the
+              difficulty of solving the ECDLP. The best method for solving the
+              ECDLP has time complexity exponential in the size of the underlying
+              field. ECDLP based cryptosystems are popular because they provide
+              good security at key sizes much smaller than number theoretical
+              Public Key Schemes like RSA cryptosystem. Elliptic curve
+              cryptosystem based on ECDLP are also present in the list of
+              recommended algorithms for use by NIST and NSA. Since ECDLP based
+              cryptosystems are in widespread use, continuous efforts on
+              monitoring the effectiveness of new attacks or improvements to
+              existing attacks on ECDLP over large field is important. Using the
+              parallel Pollard's method to solve the ECDLP efficiently is one of
+              the prime concerns. Use of different parallel architectures like
+              cluster computing (MPI), GPGPU, FPGA cluster increases the
+              effectiveness of attack. This article covers various aspects of
+              finite field, Elliptic Curve Cryptography (ECC), ECDLP, methods for
+              solving ECDLP along with emphasis on parallel Pollard's methods
+              using CPU cluster.},
+  author = {Kaushal A Chavan and Indivar Gupta and Dinesh B Kulkarni},
+  doi = {10.9790/0661-1802040111},
+  issue = {2},
+  keywords = {()},
+  pages = {1-11},
+  title = {A Review on Solving ECDLP over Large Finite Field Using Parallel
+           Pollard's Rho (p) Method},
+  volume = {18},
+  url = {www.iosrjournals.org},
+}
+
