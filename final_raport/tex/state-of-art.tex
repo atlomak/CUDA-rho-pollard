@@ -1,0 +1,55 @@
+\newpage % Zaleca się otwieranie rozdziału od nowej strony.
+\section{State~of~Art}
+\label{sc:state}
+
+\subsection{GPU}
+Procesory graficzne są dedykowane do wykonywania wielu równoległych obliczeń.
+Dzięki temu, są bardzo wydajne w zadaniach które można łatwo zrónoleglić.
+Wiele algorytmów do kryptoanalizy pozwala na przetwarzanie równoległe, 
+w szczególności algorytm \textbf{rho-Pollarda}.
+\subsubsection*{Solving Discrete Logarithms in Smooth-Order Groups with CUDA}
+W roku 2012 na karcie graficznej NVIDIA Tesla M2050 osiągnięto wydajność na poziomie
+51.9 miliona operacji mnożenia modularnego 768-bit na sekundę.
+Implementacja opierała się głównie na języku C z CUDA framework wraz z jednostkowymi segmentami
+w języku PTX który jest zbiorem instrukcji dla CUDA GPU.
+Praca ma dla mnie szczególną na tym etapie, ponieważ razem z pracą udostępniono kod
+implementacji na prawach open-source, dodatkowo opisuje
+ograniczenia i założenia jakie należy uwzględnić przy implementacji
+algorytmu rho-Pollarda na GPU\cite{henry-goldberg-cuda}.
+
+\subsubsection*{ECC2K-130 on NVIDIA GPUs}
+Artykuł opisuje implementację algorytmu rho-Pollarda na karcie graficznej NVIDIA 
+GTX 295.
+Autorzy wybrali krzywą Koblitza ECC2K-130.
+Opisano decyzje związane z wyborem bazy ( w tym przypadku wybrano bazę normalną).
+Przedstawiono również szczegóły związane z zarządzaniem pamięcią oraz problem związany
+z DRAM'em karty (przy pełnej utylizacji GPU w pamięci brakowało miejsca na input)
+Wynik: Średnio obliczenie ECDLP na tej krzywej zajełoby 2 lata przy 534 kartach.
+
+\subsection{FPGA}
+\subsubsection*{Solving Discrete Logarithms in Smooth-Order Groups with CUDA}
+W 2014 opublikowano pracę przedstawiającą implementację FPGA
+na platformie Virtex-6.
+dedykowaną do rozwiązania logarytmu dyskretnego na 113-bitowej krzywej Koblitza.
+Opisano zastosowane zabiegi poprawiające optymalizację, oraz design
+poszczególnych moduł
+Na przykład w celu lepszej optymalizacji, wykorzystano bazę normalną
+$F_{2^m}$ w jednym z modułów do liczenia automorfizmu punktów.
+Wynik po ekstrapolacji to 28 dni na rozwiązanie logarytmu na krzywej Koblitza 113 bit.
+
+\subsection{CPU}
+CPU nie są najwydajniejszą architekturą do wykonywania równoległych obliczeń.
+Zazwyczaj charakteryzują się znacznie wydajniejszymi jednostkami obliczeniowymi (rdzeniami)
+niż na przykład GPGPU, ale jest ich również znacznie mnniej niż w GPGPU.
+CPUs są najlepiej przystosowane do przetwarzania potokowego.
+\subsubsection*{A Review on solving ECDLP over Large Finite Field using Parallel
+	Pollard's Rho (p) Method}
+Praca przedstawia wyniki czasowe przy obliczaniu ECDLP na
+ciele skończonym rzędu p do 85-bitów.
+Zastosowano do tego cluster CPU o 256 rdzeniach octa-core.
+Artykuł również jest interesujący ponieważ zwięźle opsuje background matematyczny
+oraz przejrzyście przedstawia wersję równoległą
+algorytmu rho Pollarda\cite{rewiev-elliptic-cpu}.
+Wynik to 52 godziny dla krzywej na ciele rozmiaru p = 85-bitów.
+
+

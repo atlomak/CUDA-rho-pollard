@@ -1,0 +1,167 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Engineer & Master Thesis, LaTeX Template          %%
+%% Copyleft by Piotr Woźniak & Artur M. Brodzki      %%
+%% Faculty of Electronics and Information Technology %%
+%% Warsaw University of Technology, Warsaw, 2019     %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[
+    left=2.5cm,         % Sadly, generic margin parameter
+    right=2.5cm,        % doesnt't work, as it is
+    top=2.5cm,          % superseded by more specific
+    bottom=3cm,         % left...bottom parameters.
+    bindingoffset=6mm,  % Optional binding offset.
+    nohyphenation=true % You may turn off hyphenation, if don't like. =false
+]{eiti/eiti-thesis} % bazuje na clasie mwart
+
+\nocite{*}
+
+\usepackage[
+    backend=bibtex,
+]{biblatex}
+\usepackage{csquotes}
+\usepackage{hyperref}
+
+\langpol % Dla języka angielskiego mamy \langeng
+\graphicspath{{img/}}             % Katalog z obrazkami.
+\addbibresource{bibliografia.bib} % Plik .bib z bibliografią
+
+\makeatletter
+\xpatchcmd\lst@MakeCaption{\protect\numberline{\thelstlisting}\lst@@caption}{\protect\numberline{\thelstlisting.}\lst@@caption}{}{}
+%\makeatother
+%\makeatletter
+%\xpatchcmd{\LT@c@ption}{\protect\numberline{\thetable}}{\protect\numberline.{. \thetable . }}{}{}
+\makeatother
+
+\begin{document}
+
+%--------------------------------------
+% Strona tytułowa
+%--------------------------------------
+\RaportThesis
+\instytut{Cyberbezpieczeństwa}
+\kierunek{Telekomunikacja}
+\specjalnosc{Techniki Teleinformatyczne}
+\title{
+    Akceleracja sprzętowa kryptoanalizy algorytmów kryptograficznych
+}
+\engtitle{ % Tytuł po angielsku do angielskiego streszczenia
+    Hardware acceleration of cryptoanalysis of cryptograhpic algorithms
+}
+\author{Andrzej Tłomak}
+\album{311450}
+\promotor{dr. hab. inż. Mariusz Rawski}
+\date{\the\year}
+\maketitle
+
+%--------------------------------------
+% Streszczenie po polsku
+%--------------------------------------
+\streszczenie
+Celem tego etapu było zapoznanie się z literaturą opisującą aktualny \
+State~of~the~Art kryptoanalizy systemów opartych o krzywe eliptyczne w ciałach skończonych, \
+zapoznanie się z teorią oraz podstawami matematycznymi zagadnienie krzywych eliptycznych w \
+kryptografii oraz przygotowanie środowiska do pracy z wykorzystaniem technologii CUDA. \
+\slowakluczowe Krzywe eliptyczne, Kryptografia, Kryptoanaliza, CUDA, FPGA, Algorytm~rho~Pollard'a
+
+\newpage
+
+%--------------------------------------
+% Streszczenie po angielsku
+%--------------------------------------
+\abstract
+The objective of this phase included a review of the literature describing the current State-of-Art \
+in cryptoanalysis of systems \
+based on Elliptic curves in Finite Fields. It involved getting deeper knowledge of theory
+and mathematical fundation of Elliptic curves as well as setting up an environment
+to develop implementation utillizing CUDA technology.
+\keywords Elliptic curves, Cryptography, Cryptoanalysis, CUDA, FPGA, rho~Pollard~algorithm
+\newpage
+
+%--------------------------------------
+% Oświadczenie o autorstwie
+%--------------------------------------
+\makeauthorship
+\blankpage
+
+%--------------------------------------
+% Spis treści
+%--------------------------------------
+%\thispagestyle{empty}
+\tableofcontents
+%\blankpage
+
+%--------------------------------------
+% Rozdziały
+%--------------------------------------
+\input{tex/intro}
+\input{tex/math_theory.tex}
+\input{tex/state-of-art.tex}
+
+%--------------------------------------------
+% Literatura
+%--------------------------------------------
+\newpage
+\printbibliography
+%--------------------------------------------
+% Spisy (opcjonalne)
+%--------------------------------------------
+\newpage
+
+% Wykaz symboli i skrótów.
+% Pamiętaj, żeby posortować symbole alfabetycznie
+% we własnym zakresie. Ponieważ mało kto używa takiego wykazu, 
+% uznałem, że robienie automatycznie sortowanej listy
+% na poziomie LaTeXa to za duży overkill. 
+% Makro \acronymlist generuje właściwy tytuł sekcji, 
+% w zależności od języka.
+% Makro \acronym dodaje skrót/symbol to listy, 
+% zapewniając podstawowe formatowanie.
+% //AB
+\vspace{0.8cm}
+\acronymlist
+\acronym{EiTI}{Wydział Elektroniki i Technik Informacyjnych}
+\acronym{PW}{Politechnika Warszawska}
+\acronym{FPGA}{Field Programmable Gates Array}
+\acronym{DLP}{Discrete Logarithm Problem}
+\acronym{GF}{Galois Field (ciało skończone)}
+
+\listoffigures              % Spis obrazków. 
+\vspace{1cm}                % vertical space
+\listoftables               % Spis tabel. 
+\vspace{1cm}               % vertical space
+\lstlistoflistings 		% Spis wydruków
+\vspace{1cm}                % vertical space
+\listofappendices           % Spis załączników
+
+% Załączniki
+
+%\newpage
+%\appendix{Nazwa załącznika 1}
+%\lipsum[1]
+%
+%\newpage
+%\appendix{Nazwa załącznika 2}
+%\lipsum[1]
+% Załączniki
+
+%\newpage
+
+% jesli sa w~Zalacznikach tabele, rysunki, tak na szybko.. i~wylaczyc \listofappendices
+%\section*{Załącznik I. Wykaz komend AT czujnika parkowania AN-101D firmy Shenzhen Winext Technology}
+%%\appendix{Wykaz komend AT czujnika parkowania AN-101D firmy Shenzhen Winext Technology.}
+%\setcounter{section}{1}
+%\renewcommand\thetable{I.\arabic{table}}
+%\input{tex/zal-1-komendy-at}
+%
+%\newpage
+%\section*{Załącznik II. Ramki komunikacyjne czujnika parkowania AN-101D firmy Shenzhen Winext Technology}
+%%\appendix{Ramki komunikacyjne czujnika parkowania AN-101D firmy Shenzhen Winext Technology.}
+%\renewcommand\thefigure{II.\arabic{figure}}
+%\input{tex/zal-2-ramki-komunikacyjne}
+
+
+
+
+\end{document} % Dobranoc. 
+
