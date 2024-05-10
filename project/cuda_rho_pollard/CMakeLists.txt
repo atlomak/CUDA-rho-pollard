@@ -14,7 +14,7 @@ set_target_properties(main PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 # tests
 find_package(Catch2 3 REQUIRED)
 
-add_executable(tests tests/test.cu src/main.cu)
+add_executable(tests tests/test_ECCp-20.cu src/main.cu)
 target_compile_definitions(tests PRIVATE UNIT_TESTING)
 target_include_directories(tests PUBLIC src)
 

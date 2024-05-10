@@ -9,12 +9,12 @@
 
 typedef struct
 {
-    int x;
-    int y;
-} ECC_Point;
+    int64_t x;
+    int64_t y;
+} ECC_point;
 
-__device__ __host__ ECC_Point pointAdd(ECC_Point P1, ECC_Point P2, int Pmod);
+__device__ __host__ ECC_point add_points(ECC_point P1, ECC_point P2, int64_t Pmod);
 
-__device__ __host__ ECC_Point pointDouble(ECC_Point P1, int a, int Pmod);
+__device__ __host__ ECC_point mul_point(ECC_point P1, int64_t a, int64_t Pmod);
 
 #endif //MAIN_CUH
