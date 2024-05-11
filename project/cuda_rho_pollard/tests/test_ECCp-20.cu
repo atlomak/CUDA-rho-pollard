@@ -10,13 +10,13 @@ TEST_CASE("Add two points")
     // All expected values are based on results in SageMath
     SECTION("Case 1")
     {
-        ECC_point p1 = ECC_point{106721, 485050};
-        ECC_point p2 = ECC_point{478200, 808318};
+        ECC_point p1 = ECC_point{184224, 74658};
+        ECC_point p2 = ECC_point{428817, 567437};
         ECC_point result;
         result = add_points(p1, p2, FIELD_ORDER);
 
-        REQUIRE(result.x == 673570);
-        REQUIRE(result.y == 379890);
+        REQUIRE(result.x == 109605);
+        REQUIRE(result.y == 690162);
     }
     SECTION("Case 2")
     {
@@ -40,12 +40,12 @@ TEST_CASE("Add two points")
     }
 }
 
-// TEST_CASE("Double the point")
-// {
-//     ECC_point p1 = ECC_point{129876, 129876};
-//     ECC_point result;
-//     result = mul_point(p1,CURVE_A_PARAM, FIELD_ORDER);
-//
-//     REQUIRE(result.x == 2539);
-//     REQUIRE(result.y == 3254);
-// }
+TEST_CASE("Double the point")
+{
+    ECC_point p1 = ECC_point{264320, 549393};
+    ECC_point result;
+    result = mul_point(p1,CURVE_A_PARAM, FIELD_ORDER);
+
+    REQUIRE(result.x == 497617);
+    REQUIRE(result.y == 261151);
+}
