@@ -20,23 +20,23 @@ TEST_CASE("Add two points")
     }
     SECTION("Case 2")
     {
-        ECC_point p1 = ECC_point{129876, 188556};
-        ECC_point p2 = ECC_point{39538, 547853};
+        ECC_point p1 = ECC_point{24069, 233375};
+        ECC_point p2 = ECC_point{249867, 503874};
         ECC_point result;
         result = add_points(p1, p2, FIELD_ORDER);
 
-        REQUIRE(result.x == 380300);
-        REQUIRE(result.y == 620732);
+        REQUIRE(result.x == 847840);
+        REQUIRE(result.y == 636963);
     }
     SECTION("Case 3")
     {
-        ECC_point p1 = ECC_point{195914, 577386};
-        ECC_point p2 = ECC_point{589027, 802679};
+        ECC_point p1 = ECC_point{40300, 763164};
+        ECC_point p2 = ECC_point{18900, 353015};
         ECC_point result;
         result = add_points(p1, p2, FIELD_ORDER);
 
-        REQUIRE(result.x == 412960);
-        REQUIRE(result.y == 74681);
+        REQUIRE(result.x == 548652);
+        REQUIRE(result.y == 419566);
     }
 }
 
@@ -46,6 +46,6 @@ TEST_CASE("Double the point")
     ECC_point result;
     result = mul_point(p1,CURVE_A_PARAM, FIELD_ORDER);
 
-    REQUIRE(result.x == 497617);
-    REQUIRE(result.y == 261151);
+    REQUIRE(result.x == 38956);
+    REQUIRE(result.y == 83726);
 }
