@@ -62,28 +62,32 @@ __device__ __host__ ECC_point mul_point(ECC_point P1, int64_t a, int64_t Pmod)
 }
 
 
-__device__ __host__ ECC_point add_points(ECC_point P1, ECC_point P2, int64_t Pmod)
+__device__ __host__ ECC_point add_points(const ECC_point *P1, const ECC_point *P2, int64_t Pmod)
 {
-    int64_t t1 = modSub(P1.y, P2.y, Pmod); // y1-y2
-    int64_t t2 = modSub(P1.x, P2.x, Pmod); // x1-x2
+    int64_t t1 = modSub(P1->y, P2->y, Pmod); // y1-y2
+    int64_t t2 = modSub(P1->x, P2->x, Pmod); // x1-x2
     int64_t t3 = modInv(t2, Pmod); // 1/(x1-x2)
 
     int64_t s = modMult(t1, t3, Pmod); // t4 = (y1-y) * 1/(x1-x2)
 
     int64_t t5 = modMult(s, s, Pmod);
-    int64_t t6 = modAdd(P1.x, P2.x, Pmod);
+    int64_t t6 = modAdd(P1->x, P2->x, Pmod);
 
     int64_t x3 = modSub(t5, t6, Pmod); // x3 = s^2 - x1 - x2
 
     int64_t t7 = modMult(-s, x3, Pmod); // -s * x3
-    int64_t t8 = modSub(t7, P1.y, Pmod); // (-s * 3) - y1
-    int64_t t9 = modMult(s, P1.x, Pmod); // s * x1
+    int64_t t8 = modSub(t7, P1->y, Pmod); // (-s * 3) - y1
+    int64_t t9 = modMult(s, P1->x, Pmod); // s * x1
 
     int64_t y3 = modAdd(t8, t9, Pmod); // y3 = (-s * 3) - y1 - s * x1
 
     return (ECC_point){x3, y3};
 }
 
+__global__ void test_kernel_add(ECC_point *dev_a, ECC_point *dev_b, ECC_point *dev_result, int64_t mod)
+{
+    *dev_result = add_points(dev_a, dev_b, mod);
+}
 
 #ifndef UNIT_TESTING
 int64_t main()
