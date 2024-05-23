@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include "main.cuh"
+#include "ecc.cuh"
 
 #define FIELD_ORDER 0xD3915
 #define CURVE_A_PARAM 0xb44bc
