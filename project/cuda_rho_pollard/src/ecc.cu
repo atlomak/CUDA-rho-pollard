@@ -36,10 +36,7 @@ __device__ __host__ ECC_point mul_point(ECC_point P1, int64_t a, int64_t Pmod)
 {
     // Check if point P1 is at infinity
     if (P1.y == 0)
-        return (ECC_point)
-        {
-            0, 0
-        };
+        return (ECC_point){0, 0};
 
     // Calculate the slope 's' of the tangent at P1
     int64_t t1 = modMult(3, modMult(P1.x, P1.x, Pmod), Pmod); // 3 * x1^2
@@ -58,10 +55,7 @@ __device__ __host__ ECC_point mul_point(ECC_point P1, int64_t a, int64_t Pmod)
     int64_t t8 = modMult(s, t7, Pmod); // s * (x1 - x3)
     int64_t y3 = modSub(t8, P1.y, Pmod); // s * (x1 - x3) - y1
 
-    return (ECC_point)
-    {
-        x3, y3
-    };
+    return (ECC_point){x3, y3};
 }
 
 
@@ -84,13 +78,5 @@ __device__ __host__ ECC_point add_points(const ECC_point *P1, const ECC_point *P
 
     int64_t y3 = modAdd(t8, t9, Pmod); // y3 = (-s * 3) - y1 - s * x1
 
-    return (ECC_point)
-    {
-        x3, y3
-    };
-}
-
-__global__ void test_kernel_add(ECC_point *dev_a, ECC_point *dev_b, ECC_point *dev_result, int64_t mod)
-{
-    *dev_result = add_points(dev_a, dev_b, mod);
+    return (ECC_point){x3, y3};
 }

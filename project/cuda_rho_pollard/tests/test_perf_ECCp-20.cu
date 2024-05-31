@@ -10,6 +10,10 @@
 #define CURVE_A_PARAM 0xb44bc
 #define CURVE_B_PARAM 0xa999a
 
+__global__ void test_kernel_add(ECC_point *dev_a, ECC_point *dev_b, ECC_point *dev_result, int64_t mod)
+{
+    *dev_result = add_points(dev_a, dev_b, mod);
+}
 
 TEST_CASE("Kernel add points performance test")
 {
