@@ -5,8 +5,23 @@
 #ifndef MAIN_CUH
 #define MAIN_CUH
 #include <cstdio>
+#include "ecc.cuh"
 
-#define P 7
+typedef struct
+{
+    int64_t a_param;
+    int64_t mod; // Prime field characteristics
+    int64_t n; //  Order of P
+    ECC_point P;
+    ECC_point Q;
+} ECDLP_params;
+
+typedef struct
+{
+    int64_t a;
+    int64_t b;
+    ECC_point X;
+} TRIPLE;
 
 #define cudaCheckError(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 
