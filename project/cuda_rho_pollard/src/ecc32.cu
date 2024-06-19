@@ -2,7 +2,7 @@
 // Created by atlomak on 23.05.24.
 //
 
-#include "ecc.cuh"
+#include "ecc32.cuh"
 __device__ __host__ int64_t modAdd(int64_t a, int64_t b, int64_t mod)
 {
     int64_t result = (a + b) % mod;

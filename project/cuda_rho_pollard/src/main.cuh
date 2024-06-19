@@ -5,7 +5,7 @@
 #ifndef MAIN_CUH
 #define MAIN_CUH
 #include <cstdio>
-#include "ecc.cuh"
+#include "ecc32.cuh"
 
 typedef struct
 {

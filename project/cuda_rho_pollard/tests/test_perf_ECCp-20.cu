@@ -4,7 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include "main.cuh"
-#include "ecc.cuh"
+#include "ecc32.cuh"
 
 #define FIELD_ORDER 0xD3915
 #define CURVE_A_PARAM 0xb44bc
@@ -19,8 +19,8 @@ TEST_CASE("Kernel add points performance test")
 {
     SECTION("Case 1")
     {
-        ECC_point p1 = ECC_point{184224, 74658};
-        ECC_point p2 = ECC_point{428817, 567437};
+        auto p1 = ECC_point{184224, 74658};
+        auto p2 = ECC_point{428817, 567437};
         ECC_point result;
 
         cudaEvent_t start, stop;

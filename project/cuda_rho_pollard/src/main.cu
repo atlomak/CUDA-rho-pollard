@@ -3,7 +3,7 @@
 //
 
 #include "main.cuh"
-#include "ecc.cuh"
+#include "ecc32.cuh"
 #define THREADS_PER_BLOCK 10
 #define BLOCKS 1
 
