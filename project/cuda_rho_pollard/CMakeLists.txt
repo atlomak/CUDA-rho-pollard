@@ -9,7 +9,6 @@ set(CMAKE_CUDA_ARCHITECTURES 75)
 add_executable(
         main
         src/main.cu
-        src/main.cuh
 )
 set_target_properties(main PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
@@ -23,9 +22,8 @@ target_link_libraries(main PRIVATE gmp)
 find_package(Catch2 3 REQUIRED)
 
 add_executable(
-        tests tests/test_ECCp-20.cu
-        src/main.cu
-        # tests/test_cgbn.cu
+        tests
+        tests/test_add_points_ECC79p.cu
         )
 target_compile_definitions(tests PRIVATE UNIT_TESTING)
 target_include_directories(tests PRIVATE src)
