@@ -58,3 +58,5 @@ _deps
 
 # IDE
 /.idea/
+
+.ipynb_checkpoints

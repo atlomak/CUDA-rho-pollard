@@ -69,6 +69,19 @@ __device__ dev_ECC_192_point add_points(env192_t bn_env, const dev_ECC_192_point
     return dev_ECC_192_point{x3, y3};
 }
 
+__device__ dev_ECC_192_point point_mul(env192_t bn_env, const dev_ECC_192_point &P, const env192_t::cgbn_t &k, const env192_t::cgbn_t &Pmod)
+{
+    dev_ECC_192_point R = P;
+    dev_ECC_192_point Q = P;
+
+    for (int i = 1; i < 192; i++)
+    {
+        R = add_points(bn_env, R, Q, Pmod);
+    }
+
+    return R;
+}
+
 #ifndef UNIT_TESTING
 int main() {}
 #endif
