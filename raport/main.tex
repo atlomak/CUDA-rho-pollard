@@ -14,10 +14,10 @@
     nohyphenation=true % You may turn off hyphenation, if don't like. =false
 ]{eiti/eiti-thesis} % bazuje na clasie mwart
 
+\nocite{*}
 
 \usepackage[
     backend=bibtex,
-    style=ieee
 ]{biblatex}
 \usepackage{csquotes}
 \usepackage{hyperref}
@@ -26,7 +26,6 @@
 \graphicspath{{img/}}             % Katalog z obrazkami.
 \addbibresource{bibliografia.bib} % Plik .bib z bibliografią
 
-% dodanie kropki po numerze w~LoL https://tex.stackexchange.com/questions/597350/add-dot-after-number-of-listing-in-list-of-listings
 \makeatletter
 \xpatchcmd\lst@MakeCaption{\protect\numberline{\thelstlisting}\lst@@caption}{\protect\numberline{\thelstlisting.}\lst@@caption}{}{}
 %\makeatother
@@ -39,7 +38,6 @@
 %--------------------------------------
 % Strona tytułowa
 %--------------------------------------
-%\MasterThesis % dla pracy inżynierskiej mamy 
 \RaportThesis
 \instytut{Cyberbezpieczeństwa}
 \kierunek{Telekomunikacja}
@@ -59,32 +57,32 @@
 %--------------------------------------
 % Streszczenie po polsku
 %--------------------------------------
-%\streszczenie
-%Celem tego etapu było zapoznanie się z literaturą opisującą aktualny \
-%State~of~the~Art kryptoanalizy systemów opartych o krzywe eliptyczne w ciałach skończonych, \
-%zapoznanie się z teorią oraz podstawami matematycznymi zagadnienie krzywych eliptycznych w \
-%kryptografii oraz przygotowanie środowiska do pracy z wykorzystaniem technologii CUDA. \
-%\slowakluczowe Krzywe eliptyczne, Kryptografia, Kryptoanaliza, CUDA, FPGA, Algorytm~rho~Pollard'a
-%
-%\newpage
-%
-%%--------------------------------------
-%% Streszczenie po angielsku
-%%--------------------------------------
-%\abstract
-%The objective of this phase included a review of the literature describing the current State-of-Art \
-%in cryptoanalysis of systems \
-%based on Elliptic curves in Finite Fields. It involved getting deeper knowledge of theory
-%and mathematical fundation of Elliptic curves as well as setting up an environment
-%to develop implementation utillizing CUDA technology.
-%\keywords Elliptic curves, Cryptography, Cryptoanalysis, CUDA, FPGA, rho~Pollard~algorithm
-%\newpage
+\streszczenie
+Celem tego etapu było zapoznanie się z literaturą opisującą aktualny \
+State~of~the~Art kryptoanalizy systemów opartych o krzywe eliptyczne w ciałach skończonych, \
+zapoznanie się z teorią oraz podstawami matematycznymi zagadnienie krzywych eliptycznych w \
+kryptografii oraz przygotowanie środowiska do pracy z wykorzystaniem technologii CUDA. \
+\slowakluczowe Krzywe eliptyczne, Kryptografia, Kryptoanaliza, CUDA, FPGA, Algorytm~rho~Pollard'a
+
+\newpage
+
+%--------------------------------------
+% Streszczenie po angielsku
+%--------------------------------------
+\abstract
+The objective of this phase included a review of the literature describing the current State-of-Art \
+in cryptoanalysis of systems \
+based on Elliptic curves in Finite Fields. It involved getting deeper knowledge of theory
+and mathematical fundation of Elliptic curves as well as setting up an environment
+to develop implementation utillizing CUDA technology.
+\keywords Elliptic curves, Cryptography, Cryptoanalysis, CUDA, FPGA, rho~Pollard~algorithm
+\newpage
 
 %--------------------------------------
 % Oświadczenie o autorstwie
 %--------------------------------------
-%\makeauthorship
-%\blankpage
+\makeauthorship
+\blankpage
 
 %--------------------------------------
 % Spis treści
@@ -96,15 +94,9 @@
 %--------------------------------------
 % Rozdziały
 %--------------------------------------
-\input{tex/0-plans}
-\input{tex/1-theory}         % W długich pracach
-\input{tex/2-state-of-art}    % wygodnie jest trzymać
-\input{tex/3-code-listings} % każdy rozdział w osobnym pliku. 
-%\input{tex/4-rozdz-PT} % każdy rozdział w osobnym pliku. 
-
-%\newpage % Zaleca się otwieranie rozdziału od nowej strony
-%\section{Summatio}      % Ale można też pisać w jednym. 
-%\kant[5-6]
+\input{tex/intro}
+\input{tex/math_theory.tex}
+\input{tex/state-of-art.tex}
 
 %--------------------------------------------
 % Literatura
