@@ -1,0 +1,7 @@
+CompileFlags:
+  Add: [--cuda-gpu-arch=sm_75]
+  Remove:
+    - -rdc=true
+    - -gencode
+    - -forward-unknown-to-host-compiler
+    - --generate-code*
