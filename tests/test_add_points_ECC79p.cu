@@ -4,7 +4,7 @@
 
 
 #include "catch2/catch_test_macros.hpp"
-#include "main.cu"
+#include "../src/main.cu"
 
 
 // Minimal kernel to test device add_points function
