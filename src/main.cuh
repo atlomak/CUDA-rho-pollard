@@ -87,4 +87,6 @@ typedef struct
 
 __device__ dev_ECC_192_point add_points(env192_t bn_env, const dev_ECC_192_point &P1, const dev_ECC_192_point &P2, const env192_t::cgbn_t &Pmod);
 
+__device__ dev_ECC_192_point double_point(env192_t &bn_env, dev_ECC_192_point &R, const dev_ECC_192_point &P, const env192_t::cgbn_t &Pmod, env192_t::cgbn_t a);
+
 #endif //MAIN_CUH
