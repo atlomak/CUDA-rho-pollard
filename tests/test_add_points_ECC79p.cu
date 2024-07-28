@@ -8,7 +8,7 @@
 
 
 // Minimal kernel to test device add_points function
-__global__ void kernel_test(cgbn_error_report_t *report, ECC_192_point *points, EC_parameters *parameters)
+__global__ void ker_add_points(cgbn_error_report_t *report, ECC_192_point *points, EC_parameters *parameters)
 {
     context_t bn_context(cgbn_report_monitor, report, 1); // construct a context
     env192_t bn192_env(bn_context.env<env192_t>());
@@ -31,7 +31,7 @@ __global__ void kernel_test(cgbn_error_report_t *report, ECC_192_point *points, 
 }
 
 // minimal kernel to test double point
-__global__ void kernel_test_double(cgbn_error_report_t *report, ECC_192_point *points, EC_parameters *parameters)
+__global__ void ker_double_points(cgbn_error_report_t *report, ECC_192_point *points, EC_parameters *parameters)
 {
     context_t bn_context(cgbn_report_monitor, report, 1); // construct a context
     env192_t bn192_env(bn_context.env<env192_t>());
@@ -110,7 +110,7 @@ TEST_CASE("ECC_79p add points [1]")
 
     cudaCheckError(cgbn_error_report_alloc(&report));
 
-    kernel_test<<<(INSTANCES + TPI - 1) / TPI, 128>>>(report, gpuPoints, gpuParameters);
+    ker_add_points<<<(INSTANCES + TPI - 1) / TPI, 128>>>(report, gpuPoints, gpuParameters);
 
     cudaCheckError(cudaDeviceSynchronize());
 
@@ -187,7 +187,7 @@ TEST_CASE("ECC_79p double point [1]")
 
     cudaCheckError(cgbn_error_report_alloc(&report));
 
-    kernel_test_double<<<(INSTANCES + TPI - 1) / TPI, 128>>>(report, gpuPoints, gpuParameters);
+    ker_double_points<<<(INSTANCES + TPI - 1) / TPI, 128>>>(report, gpuPoints, gpuParameters);
 
     cudaCheckError(cudaDeviceSynchronize());
 

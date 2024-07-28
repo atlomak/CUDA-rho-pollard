@@ -21,7 +21,6 @@ find_package(Catch2 3 REQUIRED)
 add_executable(
         tests
         tests/test_add_points_ECC79p.cu
-        src/main.cu
         )
 target_compile_definitions(tests PRIVATE UNIT_TESTING)
 
