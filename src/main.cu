@@ -70,7 +70,8 @@ __device__ dev_ECC_192_point add_points(env192_t bn_env, const dev_ECC_192_point
     return dev_ECC_192_point{x3, y3};
 }
 
-__device__ dev_ECC_192_point double_point(env192_t &bn_env, dev_ECC_192_point &R, const dev_ECC_192_point &P, const env192_t::cgbn_t &Pmod, env192_t::cgbn_t a) {
+__device__ dev_ECC_192_point double_point(env192_t &bn_env, dev_ECC_192_point &R, const dev_ECC_192_point &P, const env192_t::cgbn_t &Pmod, env192_t::cgbn_t a)
+{
 
     env192_t::cgbn_t x, y, s, t1, t_three;
     uint32_t np0;
@@ -87,7 +88,7 @@ __device__ dev_ECC_192_point double_point(env192_t &bn_env, dev_ECC_192_point &R
     //     return;
     // }
 
-    cgbn_add(bn_env, t1, P.y, P.y); 
+    cgbn_add(bn_env, t1, P.y, P.y);
     cgbn_modular_inverse(bn_env, t1, t1, Pmod); // t1 = 1/(2y)
 
     cgbn_set_ui32(bn_env, t_three, 3);
@@ -106,7 +107,7 @@ __device__ dev_ECC_192_point double_point(env192_t &bn_env, dev_ECC_192_point &R
     cgbn_mont_mul(bn_env, s, s, t1, Pmod, np0);
 
     env192_t::cgbn_t s_sq, t3, x3, y3;
-    
+
     cgbn_mont_sqr(bn_env, s_sq, s, Pmod, np0); // s^2 mod Pmod // tested
 
     cgbn_add(bn_env, t3, x, x); // x1 + x2
