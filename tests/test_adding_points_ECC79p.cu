@@ -54,7 +54,7 @@ __global__ void ker_double_points(cgbn_error_report_t *report, ECC_192_point *po
     cgbn_store(bn192_env, &(points[0].y), result.y);
 }
 
-TEST_CASE("ECC_79p add points [1]")
+TEST_CASE("ECC_79p add points P + Q")
 {
     ECC_192_point *points, *gpuPoints;
     EC_parameters *parameters, *gpuParameters;
@@ -63,7 +63,7 @@ TEST_CASE("ECC_79p add points [1]")
     points = (ECC_192_point *)malloc(sizeof(ECC_192_point) * 2);
     parameters = (EC_parameters *)malloc(sizeof(EC_parameters));
 
-    // POINT A
+    // POINT P
     points[0].x._limbs[0] = 0x8475057d;
     points[0].x._limbs[1] = 0x4b201c20;
     points[0].x._limbs[2] = 0x0000315d;
@@ -78,7 +78,7 @@ TEST_CASE("ECC_79p add points [1]")
     points[0].y._limbs[4] = 0x0;
     points[0].y._limbs[5] = 0x0;
 
-    // POINT B
+    // POINT Q
     points[1].x._limbs[0] = 0x215dc365;
     points[1].x._limbs[1] = 0x834cefb7;
     points[1].x._limbs[2] = 0x00000679;
@@ -139,7 +139,92 @@ TEST_CASE("ECC_79p add points [1]")
     free(points);
 }
 
-TEST_CASE("ECC_79p double point [1]")
+TEST_CASE("ECC_79p add points P + X, X = 10*P")
+{
+    ECC_192_point *points, *gpuPoints;
+    EC_parameters *parameters, *gpuParameters;
+    cgbn_error_report_t *report;
+
+    points = (ECC_192_point *)malloc(sizeof(ECC_192_point) * 2);
+    parameters = (EC_parameters *)malloc(sizeof(EC_parameters));
+
+    // POINT P
+    points[0].x._limbs[0] = 0x8475057d;
+    points[0].x._limbs[1] = 0x4b201c20;
+    points[0].x._limbs[2] = 0x0000315d;
+    points[0].x._limbs[3] = 0x0;
+    points[0].x._limbs[4] = 0x0;
+    points[0].x._limbs[5] = 0x0;
+
+    points[0].y._limbs[0] = 0x0252450a;
+    points[0].y._limbs[1] = 0x3df5ab37;
+    points[0].y._limbs[2] = 0x0000035f;
+    points[0].y._limbs[3] = 0x0;
+    points[0].y._limbs[4] = 0x0;
+    points[0].y._limbs[5] = 0x0;
+
+    // POINT X
+    points[1].x._limbs[0] = 0xb43d82cb;
+    points[1].x._limbs[1] = 0x0ac1259b;
+    points[1].x._limbs[2] = 0x00000c3a;
+    points[1].x._limbs[3] = 0x0;
+    points[1].x._limbs[4] = 0x0;
+    points[1].x._limbs[5] = 0x0;
+
+    points[1].y._limbs[0] = 0x8f35b0fa;
+    points[1].y._limbs[1] = 0x6b3586aa;
+    points[1].y._limbs[2] = 0x000005f4;
+    points[1].y._limbs[3] = 0x0;
+    points[1].y._limbs[4] = 0x0;
+    points[1].y._limbs[5] = 0x0;
+
+    parameters->Pmod._limbs[0] = 0xca899cf5;
+    parameters->Pmod._limbs[1] = 0x5177412a;
+    parameters->Pmod._limbs[2] = 0x000062ce;
+    parameters->Pmod._limbs[3] = 0x0;
+    parameters->Pmod._limbs[4] = 0x0;
+    parameters->Pmod._limbs[5] = 0x0;
+
+    cudaCheckError(cudaSetDevice(0));
+
+    cudaCheckError(cudaMalloc((void **)&gpuPoints, sizeof(ECC_192_point) * 2));
+    cudaCheckError(cudaMemcpy(gpuPoints, points, sizeof(ECC_192_point) * 2, cudaMemcpyHostToDevice));
+
+    cudaCheckError(cudaMalloc((void **)&gpuParameters, sizeof(EC_parameters)));
+    cudaCheckError(cudaMemcpy(gpuParameters, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice));
+
+    cudaCheckError(cgbn_error_report_alloc(&report));
+
+    ker_add_points<<<(INSTANCES + TPI - 1) / TPI, 128>>>(report, gpuPoints, gpuParameters);
+
+    cudaCheckError(cudaDeviceSynchronize());
+
+    // CGBN_CHECK(report);
+
+    cudaCheckError(cudaMemcpy(points, gpuPoints, sizeof(ECC_192_point) * 2, cudaMemcpyDeviceToHost));
+
+    cudaCheckError(cudaFree(gpuPoints));
+    cudaCheckError(cgbn_error_report_free(report));
+
+    // ASSERT R = P + X
+    REQUIRE(points[0].x._limbs[0] == 0x26c381fd);
+    REQUIRE(points[0].x._limbs[1] == 0x7613a085);
+    REQUIRE(points[0].x._limbs[2] == 0x0000450e);
+    REQUIRE(points[0].x._limbs[3] == 0x0);
+    REQUIRE(points[0].x._limbs[4] == 0x0);
+    REQUIRE(points[0].x._limbs[5] == 0x0);
+
+    REQUIRE(points[0].y._limbs[0] == 0xaf38c5e6);
+    REQUIRE(points[0].y._limbs[1] == 0x889f5b93);
+    REQUIRE(points[0].y._limbs[2] == 0x000047be);
+    REQUIRE(points[0].y._limbs[3] == 0x0);
+    REQUIRE(points[0].y._limbs[4] == 0x0);
+    REQUIRE(points[0].y._limbs[5] == 0x0);
+
+    free(points);
+}
+
+TEST_CASE("ECC_79p double point P")
 {
     ECC_192_point *points, *gpuPoints;
     EC_parameters *parameters, *gpuParameters;

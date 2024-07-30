@@ -5,22 +5,19 @@ project(cuda-rho-pollard CUDA)
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_ARCHITECTURES 75)
 
-# MAIN
-add_executable(main
-        src/main.cu
-)
+add_library(rho_pollard SHARED src/main.cu)
 # set_target_properties(main PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 # CGBN
-target_link_libraries(main PRIVATE gmp)
-target_include_directories(main PRIVATE include/CGBN/include)
+target_link_libraries(rho_pollard PRIVATE gmp)
+target_include_directories(rho_pollard PRIVATE include/CGBN/include)
 
 # TESTS
 find_package(Catch2 3 REQUIRED)
 
 add_executable(
         tests
-        tests/test_add_points_ECC79p.cu
+        tests/test_adding_points_ECC79p.cu
         )
 target_compile_definitions(tests PRIVATE UNIT_TESTING)
 
