@@ -8,13 +8,13 @@
 
 
 // Minimal kernel to test device add_points function
-__global__ void ker_add_points(cgbn_error_report_t *report, ECC_192_point *points, EC_parameters *parameters)
+__global__ void ker_add_points(cgbn_error_report_t *report, EC_point *points, EC_parameters *parameters)
 {
     context_t bn_context(cgbn_report_monitor, report, 1); // construct a context
     env192_t bn192_env(bn_context.env<env192_t>());
 
-    env192_t::cgbn_t Pmod;
-    dev_ECC_192_point P0, P1;
+    dev_EC_point P0, P1;
+    dev_Parameters params;
 
     cgbn_load(bn192_env, P0.x, &(points[0].x));
     cgbn_load(bn192_env, P0.y, &(points[0].y));
@@ -22,22 +22,23 @@ __global__ void ker_add_points(cgbn_error_report_t *report, ECC_192_point *point
     cgbn_load(bn192_env, P1.x, &(points[1].x));
     cgbn_load(bn192_env, P1.y, &(points[1].y));
 
-    cgbn_load(bn192_env, Pmod, &(parameters->Pmod));
+    cgbn_load(bn192_env, params.Pmod, &(parameters->Pmod));
+    cgbn_load(bn192_env, params.a, &(parameters->a));
 
-    dev_ECC_192_point result = add_points(bn192_env, P0, P1, Pmod);
+    dev_EC_point result = add_points(bn192_env, P0, P1, params);
 
     cgbn_store(bn192_env, &(points[0].x), result.x);
     cgbn_store(bn192_env, &(points[0].y), result.y);
 }
 
 // minimal kernel to test double point
-__global__ void ker_double_points(cgbn_error_report_t *report, ECC_192_point *points, EC_parameters *parameters)
+__global__ void ker_double_points(cgbn_error_report_t *report, EC_point *points, EC_parameters *parameters)
 {
     context_t bn_context(cgbn_report_monitor, report, 1); // construct a context
     env192_t bn192_env(bn_context.env<env192_t>());
 
-    env192_t::cgbn_t Pmod, a;
-    dev_ECC_192_point P0, P1;
+    dev_Parameters params;
+    dev_EC_point P0, P1;
 
     cgbn_load(bn192_env, P0.x, &(points[0].x));
     cgbn_load(bn192_env, P0.y, &(points[0].y));
@@ -45,10 +46,10 @@ __global__ void ker_double_points(cgbn_error_report_t *report, ECC_192_point *po
     cgbn_load(bn192_env, P1.x, &(points[1].x));
     cgbn_load(bn192_env, P1.y, &(points[1].y));
 
-    cgbn_load(bn192_env, Pmod, &(parameters->Pmod));
-    cgbn_load(bn192_env, a, &(parameters->a));
+    cgbn_load(bn192_env, params.Pmod, &(parameters->Pmod));
+    cgbn_load(bn192_env, params.a, &(parameters->a));
 
-    dev_ECC_192_point result = double_point(bn192_env, P0, P0, Pmod, a);
+    dev_EC_point result = double_point(bn192_env, P0, P0, params);
 
     cgbn_store(bn192_env, &(points[0].x), result.x);
     cgbn_store(bn192_env, &(points[0].y), result.y);
@@ -56,11 +57,11 @@ __global__ void ker_double_points(cgbn_error_report_t *report, ECC_192_point *po
 
 TEST_CASE("ECC_79p add points P + Q")
 {
-    ECC_192_point *points, *gpuPoints;
+    EC_point *points, *gpuPoints;
     EC_parameters *parameters, *gpuParameters;
     cgbn_error_report_t *report;
 
-    points = (ECC_192_point *)malloc(sizeof(ECC_192_point) * 2);
+    points = (EC_point *)malloc(sizeof(EC_point) * 2);
     parameters = (EC_parameters *)malloc(sizeof(EC_parameters));
 
     // POINT P
@@ -102,8 +103,8 @@ TEST_CASE("ECC_79p add points P + Q")
 
     cudaCheckError(cudaSetDevice(0));
 
-    cudaCheckError(cudaMalloc((void **)&gpuPoints, sizeof(ECC_192_point) * 2));
-    cudaCheckError(cudaMemcpy(gpuPoints, points, sizeof(ECC_192_point) * 2, cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMalloc((void **)&gpuPoints, sizeof(EC_point) * 2));
+    cudaCheckError(cudaMemcpy(gpuPoints, points, sizeof(EC_point) * 2, cudaMemcpyHostToDevice));
 
     cudaCheckError(cudaMalloc((void **)&gpuParameters, sizeof(EC_parameters)));
     cudaCheckError(cudaMemcpy(gpuParameters, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice));
@@ -116,7 +117,7 @@ TEST_CASE("ECC_79p add points P + Q")
 
     // CGBN_CHECK(report);
 
-    cudaCheckError(cudaMemcpy(points, gpuPoints, sizeof(ECC_192_point) * 2, cudaMemcpyDeviceToHost));
+    cudaCheckError(cudaMemcpy(points, gpuPoints, sizeof(EC_point) * 2, cudaMemcpyDeviceToHost));
 
     cudaCheckError(cudaFree(gpuPoints));
     cudaCheckError(cgbn_error_report_free(report));
@@ -141,11 +142,11 @@ TEST_CASE("ECC_79p add points P + Q")
 
 TEST_CASE("ECC_79p add points P + X, X = 10*P")
 {
-    ECC_192_point *points, *gpuPoints;
+    EC_point *points, *gpuPoints;
     EC_parameters *parameters, *gpuParameters;
     cgbn_error_report_t *report;
 
-    points = (ECC_192_point *)malloc(sizeof(ECC_192_point) * 2);
+    points = (EC_point *)malloc(sizeof(EC_point) * 2);
     parameters = (EC_parameters *)malloc(sizeof(EC_parameters));
 
     // POINT P
@@ -187,8 +188,8 @@ TEST_CASE("ECC_79p add points P + X, X = 10*P")
 
     cudaCheckError(cudaSetDevice(0));
 
-    cudaCheckError(cudaMalloc((void **)&gpuPoints, sizeof(ECC_192_point) * 2));
-    cudaCheckError(cudaMemcpy(gpuPoints, points, sizeof(ECC_192_point) * 2, cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMalloc((void **)&gpuPoints, sizeof(EC_point) * 2));
+    cudaCheckError(cudaMemcpy(gpuPoints, points, sizeof(EC_point) * 2, cudaMemcpyHostToDevice));
 
     cudaCheckError(cudaMalloc((void **)&gpuParameters, sizeof(EC_parameters)));
     cudaCheckError(cudaMemcpy(gpuParameters, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice));
@@ -201,7 +202,7 @@ TEST_CASE("ECC_79p add points P + X, X = 10*P")
 
     // CGBN_CHECK(report);
 
-    cudaCheckError(cudaMemcpy(points, gpuPoints, sizeof(ECC_192_point) * 2, cudaMemcpyDeviceToHost));
+    cudaCheckError(cudaMemcpy(points, gpuPoints, sizeof(EC_point) * 2, cudaMemcpyDeviceToHost));
 
     cudaCheckError(cudaFree(gpuPoints));
     cudaCheckError(cgbn_error_report_free(report));
@@ -226,11 +227,11 @@ TEST_CASE("ECC_79p add points P + X, X = 10*P")
 
 TEST_CASE("ECC_79p double point P")
 {
-    ECC_192_point *points, *gpuPoints;
+    EC_point *points, *gpuPoints;
     EC_parameters *parameters, *gpuParameters;
     cgbn_error_report_t *report;
 
-    points = (ECC_192_point *)malloc(sizeof(ECC_192_point) * 2);
+    points = (EC_point *)malloc(sizeof(EC_point) * 2);
     parameters = (EC_parameters *)malloc(sizeof(EC_parameters));
 
     // POINT A
@@ -264,8 +265,8 @@ TEST_CASE("ECC_79p double point P")
 
     cudaCheckError(cudaSetDevice(0));
 
-    cudaCheckError(cudaMalloc((void **)&gpuPoints, sizeof(ECC_192_point) * 2));
-    cudaCheckError(cudaMemcpy(gpuPoints, points, sizeof(ECC_192_point) * 2, cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMalloc((void **)&gpuPoints, sizeof(EC_point) * 2));
+    cudaCheckError(cudaMemcpy(gpuPoints, points, sizeof(EC_point) * 2, cudaMemcpyHostToDevice));
 
     cudaCheckError(cudaMalloc((void **)&gpuParameters, sizeof(EC_parameters)));
     cudaCheckError(cudaMemcpy(gpuParameters, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice));
@@ -278,7 +279,7 @@ TEST_CASE("ECC_79p double point P")
 
     CGBN_CHECK(report);
 
-    cudaCheckError(cudaMemcpy(points, gpuPoints, sizeof(ECC_192_point) * 2, cudaMemcpyDeviceToHost));
+    cudaCheckError(cudaMemcpy(points, gpuPoints, sizeof(EC_point) * 2, cudaMemcpyDeviceToHost));
 
     cudaCheckError(cudaFree(gpuPoints));
     cudaCheckError(cgbn_error_report_free(report));

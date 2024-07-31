@@ -5,9 +5,9 @@
 #ifndef MAIN_CUH
 #define MAIN_CUH
 
+#include <cstdint>
 #include <gmp.h>
 #include "cgbn/cgbn.h"
-#include <cstdint>
 
 // ERR DIAGNOSTICS
 
@@ -43,9 +43,12 @@ void cgbn_check(cgbn_error_report_t *report, const char *file = NULL, int32_t li
 }
 #define CGBN_CHECK(report) cgbn_check(report, __FILE__, __LINE__)
 
-#define cudaCheckError(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+#define cudaCheckError(ans)                                                                                                                                    \
+    {                                                                                                                                                          \
+        gpuAssert((ans), __FILE__, __LINE__);                                                                                                                  \
+    }
 
-inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort = true)
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort = true)
 {
     if (code != cudaSuccess)
     {
@@ -69,13 +72,13 @@ typedef struct
 {
     cgbn_mem_t<BITS> x;
     cgbn_mem_t<BITS> y;
-} ECC_192_point;
+} EC_point;
 
 typedef struct
 {
     env192_t::cgbn_t x;
     env192_t::cgbn_t y;
-} dev_ECC_192_point;
+} dev_EC_point;
 
 typedef struct
 {
@@ -83,10 +86,16 @@ typedef struct
     cgbn_mem_t<BITS> a;
 } EC_parameters;
 
+typedef struct
+{
+    env192_t::cgbn_t Pmod;
+    env192_t::cgbn_t a;
+} dev_Parameters;
+
 // prototypes
 
-__device__ dev_ECC_192_point add_points(env192_t bn_env, const dev_ECC_192_point &P1, const dev_ECC_192_point &P2, const env192_t::cgbn_t &Pmod);
+__device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, const dev_EC_point &P2, const dev_Parameters &params);
 
-__device__ dev_ECC_192_point double_point(env192_t &bn_env, dev_ECC_192_point &R, const dev_ECC_192_point &P, const env192_t::cgbn_t &Pmod, env192_t::cgbn_t a);
+__device__ dev_EC_point double_point(env192_t &bn_env, dev_EC_point &R, const dev_EC_point &P, const dev_Parameters &params);
 
-#endif //MAIN_CUH
+#endif // MAIN_CUH
