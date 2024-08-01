@@ -98,6 +98,6 @@ typedef struct
 
 __device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, const dev_EC_point &P2, const dev_Parameters &params);
 
-__device__ dev_EC_point double_point(env192_t &bn_env, dev_EC_point &R, const dev_EC_point &P, const dev_Parameters &params);
+__device__ dev_EC_point double_point(env192_t &bn_env, const dev_EC_point &P, const dev_Parameters &params);
 
 #endif // MAIN_CUH
