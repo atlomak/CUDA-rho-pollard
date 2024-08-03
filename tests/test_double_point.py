@@ -17,7 +17,7 @@ def test_double_point_1(parameters):
     points[1].x._limbs[:] = num_to_limbs(B[0])
     points[1].y._limbs[:] = num_to_limbs(B[1])
 
-    cuda_rho_pollard.test_adding_points(points, 2, ctypes.byref(parameters))
+    cuda_rho_pollard.test_adding_points(points, 1, ctypes.byref(parameters))
 
     expected_x = num_to_limbs(R[0])
     expected_y = num_to_limbs(R[1])
@@ -43,7 +43,7 @@ def test_double_point_2(parameters):
     points[1].x._limbs[:] = num_to_limbs(B[0])
     points[1].y._limbs[:] = num_to_limbs(B[1])
 
-    cuda_rho_pollard.test_adding_points(points, 2, ctypes.byref(parameters))
+    cuda_rho_pollard.test_adding_points(points, 1, ctypes.byref(parameters))
 
     expected_x = num_to_limbs(R[0])
     expected_y = num_to_limbs(R[1])
@@ -69,7 +69,7 @@ def test_double_point_3(parameters):
     points[1].x._limbs[:] = num_to_limbs(B[0])
     points[1].y._limbs[:] = num_to_limbs(B[1])
 
-    cuda_rho_pollard.test_adding_points(points, 2, ctypes.byref(parameters))
+    cuda_rho_pollard.test_adding_points(points, 1, ctypes.byref(parameters))
 
     expected_x = num_to_limbs(R[0])
     expected_y = num_to_limbs(R[1])
@@ -95,7 +95,7 @@ def test_double_point_4(parameters):
     points[1].x._limbs[:] = num_to_limbs(B[0])
     points[1].y._limbs[:] = num_to_limbs(B[1])
 
-    cuda_rho_pollard.test_adding_points(points, 2, ctypes.byref(parameters))
+    cuda_rho_pollard.test_adding_points(points, 1, ctypes.byref(parameters))
 
     expected_x = num_to_limbs(R[0])
     expected_y = num_to_limbs(R[1])

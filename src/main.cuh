@@ -61,7 +61,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 // CGBN settings
 
 #define TPI 4
-#define INSTANCES 1
 
 #define BITS 192
 
