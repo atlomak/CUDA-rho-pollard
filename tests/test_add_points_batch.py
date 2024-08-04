@@ -23,7 +23,7 @@ def generate_points():
     return (starting_points, expected_results)
 
 
-def test_add_points_1(parameters, generate_points):
+def test_add_points_batch_1(parameters, generate_points):
     points = (EC_point * STARTING_POINTS)()
     starting_points = generate_points[0]
     expected_points = generate_points[1]
