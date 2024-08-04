@@ -14,7 +14,6 @@ __device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, cons
     env192_t::cgbn_t t2;
     if (cgbn_sub(bn_env, t2, P1.x, P2.x)) // x1 - x2 mod Pmod
     {
-        printf("BREAKPOINT 1\n");
         cgbn_sub(bn_env, t2, P2.x, P1.x);
         cgbn_sub(bn_env, t2, params.Pmod, t2);
     }
@@ -37,7 +36,6 @@ __device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, cons
 
     if (cgbn_sub(bn_env, t1, y1, y2)) // y0 - y1 mod Pmod
     {
-        printf("BREAKPOINT 2\n");
         cgbn_sub(bn_env, t1, y2, y1);
         cgbn_sub(bn_env, t1, params.Pmod, t1);
     }
@@ -49,17 +47,19 @@ __device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, cons
     cgbn_mont_sqr(bn_env, s_sq, s, params.Pmod, np0); // s^2 mod Pmod // tested
 
     cgbn_add(bn_env, t3, x1, x2); // x1 + x2
+    if(cgbn_compare(bn_env, t3, params.Pmod) > 0)
+    {
+        cgbn_sub(bn_env, t3, t3, params.Pmod);
+    }
 
     if (cgbn_sub(bn_env, x3, s_sq, t3)) // x3 = s^2 - x1 - x2 // mod Pmod
     {
-        printf("BREAKPOINT 4\n");
         cgbn_sub(bn_env, x3, t3, s_sq);
         cgbn_sub(bn_env, x3, params.Pmod, x3);
     }
 
     if (cgbn_sub(bn_env, t3, x1, x3)) // t3 = x1 - x3 // mod Pmod
     {
-        printf("BREAKPOINT 5\n");
         cgbn_sub(bn_env, t3, x3, x1);
         cgbn_sub(bn_env, t3, params.Pmod, t3);
     }
@@ -68,7 +68,6 @@ __device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, cons
 
     if (cgbn_sub(bn_env, y3, t3, y1))
     {
-        printf("BREAKPOINT 6\n");
         cgbn_sub(bn_env, y3, y1, t3);
         cgbn_sub(bn_env, y3, params.Pmod, y3);
     }
