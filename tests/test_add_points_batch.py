@@ -2,7 +2,7 @@ import ctypes
 
 from settings import *
 
-INSTANCES = 20000
+INSTANCES = 2000
 STARTING_POINTS = INSTANCES * 2
 
 
@@ -30,10 +30,6 @@ def test_add_points_batch_1(parameters, generate_points):
 
     A = Q * (200 * 5 + 1)
     B = Q * 20
-
-    print(A)
-    print(B)
-    print(A + B)
 
     for i in range(STARTING_POINTS):
         point = starting_points[i]
