@@ -14,7 +14,7 @@ __device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, cons
     env192_t::cgbn_t t2;
     if (cgbn_sub(bn_env, t2, P1.x, P2.x)) // x1 - x2 mod Pmod
     {
-        cgbn_add(bn_env, t2, t2, params.Pmod);
+        cgbn_add(bn_env, t2, t2, params.Pmod); // if t2 < 0 then Pmod + (-t2) % 2^BITS ==
     }
 
 
@@ -144,6 +144,10 @@ __device__ dev_EC_point double_point(env192_t &bn_env, const dev_EC_point &P, co
 
     return dev_EC_point{x3, y3};
 }
+
+#define LEADING_ZEROS 10
+
+__device__ uint32_t is_distinguish(env192_t &bn_env, const dev_EC_point &P) { return (cgbn_clz(bn_env, P.x) == LEADING_ZEROS); }
 
 #ifndef UNIT_TESTING
 int main() {}
