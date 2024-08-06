@@ -2,8 +2,8 @@
 // Created by atlomak on 05.05.24.
 //
 
-#ifndef MAIN_CUH
-#define MAIN_CUH
+#ifndef EC_POINT_OPS_H
+#define EC_POINTS_OPS_H
 
 #include <cstdint>
 #include <gmp.h>
@@ -61,8 +61,9 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 // CGBN settings
 
 #define TPI 4
-
 #define BITS 192
+
+
 
 typedef cgbn_context_t<TPI> context_t;
 typedef cgbn_env_t<context_t, BITS> env192_t;

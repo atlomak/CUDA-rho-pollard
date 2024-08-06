@@ -1,4 +1,4 @@
-#include "../src/main.cu"
+#include "../src/ec_points_ops.cu"
 
 __global__ void ker_add_points(cgbn_error_report_t *report, EC_point *points, EC_parameters *parameters, int32_t instances)
 {

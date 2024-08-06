@@ -2,7 +2,11 @@
 // Created by atlomak on 05.05.24.
 //
 
-#include "main.cuh"
+#include "ec_points_ops.cuh"
+
+#define LEADING_ZEROS 20
+
+__device__ uint32_t is_distinguish(env192_t &bn_env, const dev_EC_point &P) { return (cgbn_clz(bn_env, P.x) == LEADING_ZEROS); }
 
 __device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, const dev_EC_point &P2, const dev_Parameters &params)
 {
@@ -144,11 +148,3 @@ __device__ dev_EC_point double_point(env192_t &bn_env, const dev_EC_point &P, co
 
     return dev_EC_point{x3, y3};
 }
-
-#define LEADING_ZEROS 10
-
-__device__ uint32_t is_distinguish(env192_t &bn_env, const dev_EC_point &P) { return (cgbn_clz(bn_env, P.x) == LEADING_ZEROS); }
-
-#ifndef UNIT_TESTING
-int main() {}
-#endif
