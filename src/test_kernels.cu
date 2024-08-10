@@ -16,7 +16,7 @@ __global__ void ker_add_points(cgbn_error_report_t *report, EC_point *points, EC
     context_t bn_context(cgbn_report_monitor, report, instance); // construct a context
     env192_t bn192_env(bn_context.env<env192_t>());
 
-    dev_EC_point P0, P1;
+    dev_EC_point P0, P1, R;
     dev_Parameters params;
 
     cgbn_load(bn192_env, P0.x, &(points[points_index].x));
@@ -28,10 +28,10 @@ __global__ void ker_add_points(cgbn_error_report_t *report, EC_point *points, EC
     cgbn_load(bn192_env, params.Pmod, &(parameters->Pmod));
     cgbn_load(bn192_env, params.a, &(parameters->a));
 
-    dev_EC_point result = add_points(bn192_env, P0, P1, params);
+    add_points(bn192_env, R, P0, P1, params);
 
-    cgbn_store(bn192_env, &(points[points_index].x), result.x);
-    cgbn_store(bn192_env, &(points[points_index].y), result.y);
+    cgbn_store(bn192_env, &(points[points_index].x), R.x);
+    cgbn_store(bn192_env, &(points[points_index].y), R.y);
 }
 
 extern "C" {

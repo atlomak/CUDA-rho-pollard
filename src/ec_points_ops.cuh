@@ -64,7 +64,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
 #define BITS 192
 
 
-
 typedef cgbn_context_t<TPI> context_t;
 typedef cgbn_env_t<context_t, BITS> env192_t;
 
@@ -96,8 +95,8 @@ typedef struct
 
 // prototypes
 
-__device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, const dev_EC_point &P2, const dev_Parameters &params);
+__device__ void add_points(env192_t bn_env, dev_EC_point &R, const dev_EC_point &P1, const dev_EC_point &P2, const dev_Parameters &params);
 
-__device__ dev_EC_point double_point(env192_t &bn_env, const dev_EC_point &P, const dev_Parameters &params);
+__device__ void double_point(env192_t &bn_env, dev_EC_point &R, const dev_EC_point &P, const dev_Parameters &params);
 
 #endif // MAIN_CUH

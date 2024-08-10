@@ -4,15 +4,13 @@
 
 #include "ec_points_ops.cuh"
 
-#define LEADING_ZEROS 20
 
-__device__ uint32_t is_distinguish(env192_t &bn_env, const dev_EC_point &P) { return (cgbn_clz(bn_env, P.x) == LEADING_ZEROS); }
-
-__device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, const dev_EC_point &P2, const dev_Parameters &params)
+__device__ void add_points(env192_t bn_env, dev_EC_point &R, const dev_EC_point &P1, const dev_EC_point &P2, const dev_Parameters &params)
 {
     if (cgbn_equals(bn_env, P1.x, P2.x) && cgbn_equals(bn_env, P1.y, P2.y))
     {
-        return double_point(bn_env, P1, params);
+        double_point(bn_env, R, P1, params);
+        return;
     }
 
     env192_t::cgbn_t t2;
@@ -76,10 +74,11 @@ __device__ dev_EC_point add_points(env192_t bn_env, const dev_EC_point &P1, cons
 
     // cgbn_sub(bn_env, x3, s_sq, t1);
 
-    return dev_EC_point{x3, y3};
+    cgbn_set(bn_env, R.x, x3);
+    cgbn_set(bn_env, R.y, y3);
 }
 
-__device__ dev_EC_point double_point(env192_t &bn_env, const dev_EC_point &P, const dev_Parameters &params)
+__device__ void double_point(env192_t &bn_env, dev_EC_point &R, const dev_EC_point &P, const dev_Parameters &params)
 {
 
     env192_t::cgbn_t x, y, s, t1, t_three, a;
@@ -145,6 +144,6 @@ __device__ dev_EC_point double_point(env192_t &bn_env, const dev_EC_point &P, co
     cgbn_mont2bn(bn_env, y3, y3, params.Pmod, np0);
 
     // cgbn_sub(bn_env, x3, s_sq, t1);
-
-    return dev_EC_point{x3, y3};
+    cgbn_set(bn_env, R.x, x3);
+    cgbn_set(bn_env, R.y, y3);
 }
