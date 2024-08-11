@@ -2,9 +2,8 @@
 #include <cstdio>
 #include "ec_points_ops.cu"
 
-#define LEADING_ZEROS 20
-#define PRECOMPUTED_POINTS 2048
-#define TPB 4
+#define LEADING_ZEROS 10
+#define PRECOMPUTED_POINTS 1024
 
 __shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
@@ -19,6 +18,7 @@ __device__ uint32_t map_to_index(env192_t &bn_env, const dev_EC_point &P, const 
 
 __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_point *precomputed, EC_parameters *parameters, int32_t instances)
 {
+    // EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
     uint32_t instance;
     uint32_t thread_id;
 
@@ -27,7 +27,6 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
 
     if (instance >= instances)
     {
-        // printf("RETURNED th: %d, Ins: %d, block: %d\n",threadIdx.x, instance, blockIdx.x);
         return;
     }
 
@@ -40,7 +39,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
             SMEMprecomputed[i] = precomputed[i];
         }
     }
-    
+
     __syncthreads();
 
     context_t bn_context(cgbn_report_monitor, report, instance); // construct a context
@@ -68,8 +67,8 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
         // {
         //     printf("th: %d, Ins: %d, block: %d. Precomputed index: %d\n",threadIdx.x, instance, blockIdx.x, precomp_index);
         // }
-        cgbn_load(bn192_env, R.x, &(SMEMprecomputed[0].x));
-        cgbn_load(bn192_env, R.y, &(SMEMprecomputed[0].y));
+        cgbn_load(bn192_env, R.x, &(SMEMprecomputed[precomp_index].x));
+        cgbn_load(bn192_env, R.y, &(SMEMprecomputed[precomp_index].y));
         add_points(bn192_env, W, W, R, params);
         // if ((counter) > 50)
         // {
@@ -87,7 +86,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
 }
 
 extern "C" {
-void run_rho_pollard(EC_point *startingPts, int32_t instances, EC_point *precomputed_points, EC_parameters *parameters)
+void run_rho_pollard(EC_point *startingPts, uint32_t instances, EC_point *precomputed_points, EC_parameters *parameters)
 {
     EC_point *gpu_starting;
     EC_point *gpu_precomputed;
@@ -96,8 +95,8 @@ void run_rho_pollard(EC_point *startingPts, int32_t instances, EC_point *precomp
 
     cudaCheckError(cudaSetDevice(0));
 
-    cudaCheckError(cudaMalloc((void **)&gpu_starting, sizeof(EC_point) * instances * 2));
-    cudaCheckError(cudaMemcpy(gpu_starting, startingPts, sizeof(EC_point) * instances * 2, cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMalloc((void **)&gpu_starting, sizeof(EC_point) * instances));
+    cudaCheckError(cudaMemcpy(gpu_starting, startingPts, sizeof(EC_point) * instances, cudaMemcpyHostToDevice));
 
     cudaCheckError(cudaMalloc((void **)&gpu_precomputed, sizeof(EC_point) * PRECOMPUTED_POINTS));
     cudaCheckError(cudaMemcpy(gpu_precomputed, precomputed_points, sizeof(EC_point) * PRECOMPUTED_POINTS, cudaMemcpyHostToDevice));
@@ -107,7 +106,8 @@ void run_rho_pollard(EC_point *startingPts, int32_t instances, EC_point *precomp
 
     cudaCheckError(cgbn_error_report_alloc(&report));
 
-    rho_pollard<<<1, 512>>>(report, gpu_starting, gpu_precomputed, gpu_params, instances);
+    // 512 threads per block (128 CGBN instances)
+    rho_pollard<<<(instances + 127) / 128, 512>>>(report, gpu_starting, gpu_precomputed, gpu_params, instances);
 
     cudaCheckError(cudaDeviceSynchronize());
     CGBN_CHECK(report);
