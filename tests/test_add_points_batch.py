@@ -37,7 +37,7 @@ def test_add_points_batch_1(parameters, generate_points):
         points[i].x._limbs[:] = num_to_limbs(point[0])
         points[i].y._limbs[:] = num_to_limbs(point[1])
 
-    cuda_rho_pollard.test_adding_points(points, INSTANCES, ctypes.byref(parameters))
+    cuda_test_kernel.test_adding_points(points, INSTANCES, ctypes.byref(parameters))
 
     for i in range(INSTANCES):
         R = expected_points[i]

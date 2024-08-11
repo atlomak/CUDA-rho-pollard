@@ -22,15 +22,15 @@ class EC_parameters(ctypes.Structure):
 
 
 path = Path.cwd().parent
-cuda_rho_pollard = ctypes.CDLL(str(path) + "/build/libtest_kernels.so")
+cuda_test_kernel = ctypes.CDLL(str(path) + "/build/libtest_kernel.so")
 
-cuda_rho_pollard.test_adding_points.argtypes = [
+cuda_test_kernel.test_adding_points.argtypes = [
     ctypes.POINTER(EC_point),
     ctypes.c_size_t,
     ctypes.POINTER(EC_parameters),
 ]
 
-cuda_rho_pollard.test_adding_points.restype = None
+cuda_test_kernel.test_adding_points.restype = None
 
 
 def num_to_limbs(number, limbs=6):
