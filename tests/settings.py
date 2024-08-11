@@ -18,8 +18,6 @@ class EC_parameters(ctypes.Structure):
     _fields_ = [
         ("Pmod", cgbn_mem_t),
         ("a", cgbn_mem_t),
-        ("P", EC_point),
-        ("Q", EC_point),
     ]
 
 
@@ -73,10 +71,5 @@ def parameters():
     params = EC_parameters()
     params.Pmod._limbs[:] = num_to_limbs(p)
     params.a._limbs[:] = num_to_limbs(a)
-    params.P.x._limbs[:] = num_to_limbs(P[0])
-    params.P.y._limbs[:] = num_to_limbs(P[1])
-
-    params.Q.x._limbs[:] = num_to_limbs(Q[0])
-    params.Q.y._limbs[:] = num_to_limbs(Q[1])
 
     return params

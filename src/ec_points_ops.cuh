@@ -83,8 +83,6 @@ typedef struct
 {
     cgbn_mem_t<BITS> Pmod;
     cgbn_mem_t<BITS> a;
-    EC_point P;
-    EC_point Q;
 } EC_parameters;
 
 typedef struct
