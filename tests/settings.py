@@ -33,6 +33,15 @@ cuda_test_kernel.test_adding_points.argtypes = [
 
 cuda_test_kernel.test_adding_points.restype = None
 
+cuda_rho_pollard = ctypes.CDLL(str(path) + "/build/librho_pollard.so")
+cuda_rho_pollard.run_rho_pollard.argtypes = [
+    ctypes.POINTER(EC_point),
+    ctypes.c_uint32,
+    ctypes.POINTER(EC_point),
+    ctypes.POINTER(EC_parameters),
+]
+cuda_rho_pollard.run_rho_pollard.restype = None
+
 
 def num_to_limbs(number, limbs=6):
     number = int(number)

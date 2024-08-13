@@ -6,7 +6,7 @@
 
 __shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
-__device__ uint32_t is_distinguish(env192_t &bn_env, const dev_EC_point &P, uint32_t zeros_count) { return (cgbn_ctz(bn_env, P.x) == zeros_count); }
+__device__ uint32_t is_distinguish(env192_t &bn_env, const dev_EC_point &P, uint32_t zeros_count) { return (cgbn_ctz(bn_env, P.x) >= zeros_count); }
 
 __device__ uint32_t map_to_index(env192_t &bn_env, const dev_EC_point &P, const env192_t::cgbn_t &mask)
 {
@@ -87,6 +87,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
 extern "C" {
 void run_rho_pollard(EC_point *startingPts, uint32_t instances, EC_point *precomputed_points, EC_parameters *parameters)
 {
+    printf("Starting rho pollard: zeroes count %d", parameters->zeros_count);
     EC_point *gpu_starting;
     EC_point *gpu_precomputed;
     EC_parameters *gpu_params;
