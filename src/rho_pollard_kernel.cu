@@ -2,12 +2,11 @@
 #include <cstdio>
 #include "ec_points_ops.cu"
 
-#define LEADING_ZEROS 10
 #define PRECOMPUTED_POINTS 1024
 
 __shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
-__device__ uint32_t is_distinguish(env192_t &bn_env, const dev_EC_point &P) { return (cgbn_ctz(bn_env, P.x) == LEADING_ZEROS); }
+__device__ uint32_t is_distinguish(env192_t &bn_env, const dev_EC_point &P, uint32_t zeros_count) { return (cgbn_ctz(bn_env, P.x) == zeros_count); }
 
 __device__ uint32_t map_to_index(env192_t &bn_env, const dev_EC_point &P, const env192_t::cgbn_t &mask)
 {
@@ -59,7 +58,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
     cgbn_set_ui32(bn192_env, mask, PRECOMPUTED_POINTS - 1);
 
     uint32_t counter = 0;
-    while (!is_distinguish(bn192_env, W))
+    while (!is_distinguish(bn192_env, W, parameters->zeros_count))
     {
         counter++;
         uint32_t precomp_index = map_to_index(bn192_env, W, mask);

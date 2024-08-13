@@ -83,6 +83,7 @@ typedef struct
 {
     cgbn_mem_t<BITS> Pmod;
     cgbn_mem_t<BITS> a;
+    uint32_t zeros_count;
 } EC_parameters;
 
 typedef struct

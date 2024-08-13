@@ -18,6 +18,7 @@ class EC_parameters(ctypes.Structure):
     _fields_ = [
         ("Pmod", cgbn_mem_t),
         ("a", cgbn_mem_t),
+        ("zeros_count", ctypes.c_uint32),
     ]
 
 
