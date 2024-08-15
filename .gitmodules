@@ -1,0 +1,3 @@
+[submodule "include/CGBN"]
+	path = include/CGBN
+	url = https://github.com/NVlabs/CGBN.git
