@@ -22,7 +22,7 @@ class EC_parameters(ctypes.Structure):
     ]
 
 
-path = Path.cwd().parent
+path = Path.cwd()
 cuda_test_kernel = ctypes.CDLL(str(path) + "/build/libtest_kernel.so")
 
 cuda_test_kernel.test_adding_points.argtypes = [
