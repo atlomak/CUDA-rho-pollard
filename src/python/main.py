@@ -18,11 +18,11 @@ class PrecomputedPoint:
         self.b = b
 
 
-def generate_precomputed_points():
+def generate_precomputed_points(precomputed_points_size) -> list[PrecomputedPoint]:
     points = []
     m = md5()
     m.update(str(time.time()).encode("utf-8"))
-    for i in range(PRECOMPUTED_POINTS):
+    for i in range(precomputed_points_size):
         a = int.from_bytes(m.digest())
         A = P * a
         m.update(b"1")
@@ -87,7 +87,7 @@ def find_discrete_log(a1, b1, a2, b2):
 
 async def main():
     print("Starting...")
-    precomputed_points = generate_precomputed_points()
+    precomputed_points = generate_precomputed_points(PRECOMPUTED_POINTS)
     precomputed_points_worker = [p.point for p in precomputed_points]
 
     queue = asyncio.Queue()
