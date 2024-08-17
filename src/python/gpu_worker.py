@@ -4,12 +4,13 @@ from pathlib import Path
 from hashlib import md5
 import time
 
-from utils import num_to_limbs, limbs_to_num
 from settings import *
+
+LIMBS = 3
 
 
 class cgbn_mem_t(ctypes.Structure):
-    _fields_ = [("_limbs", ctypes.c_uint32 * 6)]
+    _fields_ = [("_limbs", ctypes.c_uint32 * LIMBS)]
 
 
 class EC_point(ctypes.Structure):
@@ -22,6 +23,23 @@ class EC_parameters(ctypes.Structure):
         ("a", cgbn_mem_t),
         ("zeros_count", ctypes.c_uint32),
     ]
+
+
+def num_to_limbs(number, limbs=LIMBS):
+    number = int(number)
+    result = []
+    mask = (1 << 32) - 1
+    for i in range(limbs):
+        result.append(number & mask)
+        number >>= 32
+    return result
+
+
+def limbs_to_num(limbs):
+    result = 0
+    for i, limb in enumerate(limbs):
+        result |= (limb & ((1 << 32) - 1)) << (32 * i)
+    return result
 
 
 def get_lib():

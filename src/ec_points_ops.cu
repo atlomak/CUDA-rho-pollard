@@ -119,25 +119,26 @@ __device__ void double_point(env192_t &bn_env, dev_EC_point &R, const dev_EC_poi
     cgbn_mont_sqr(bn_env, s_sq, s, params.Pmod, np0); // s^2 mod Pmod // tested
 
     cgbn_add(bn_env, t3, x, x); // x1 + x2
+    if (cgbn_compare(bn_env, t3, params.Pmod) > 0)
+    {
+        cgbn_sub(bn_env, t3, t3, params.Pmod);
+    }
 
     if (cgbn_sub(bn_env, x3, s_sq, t3)) // x3 = s^2 - x1 - x2 // mod Pmod
     {
-        cgbn_sub(bn_env, x3, t3, s_sq);
-        cgbn_sub(bn_env, x3, params.Pmod, x3);
+        cgbn_add(bn_env, x3, x3, params.Pmod);
     }
 
     if (cgbn_sub(bn_env, t3, x, x3)) // t3 = x1 - x3 // mod Pmod
     {
-        cgbn_sub(bn_env, t3, x3, x);
-        cgbn_sub(bn_env, t3, params.Pmod, t3);
+        cgbn_add(bn_env, t3, t3, params.Pmod);
     }
 
     cgbn_mont_mul(bn_env, t3, t3, s, params.Pmod, np0);
 
     if (cgbn_sub(bn_env, y3, t3, y))
     {
-        cgbn_sub(bn_env, y3, y, t3);
-        cgbn_sub(bn_env, y3, params.Pmod, y3);
+        cgbn_add(bn_env, y3, y3, params.Pmod);
     }
 
     cgbn_mont2bn(bn_env, x3, x3, params.Pmod, np0);

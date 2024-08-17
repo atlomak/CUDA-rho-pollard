@@ -3,11 +3,11 @@ import pytest
 from sage.all import GF, EllipticCurve
 from pathlib import Path
 
-LIMBS = 6
+LIMBS = 3
 
 
 class cgbn_mem_t(ctypes.Structure):
-    _fields_ = [("_limbs", ctypes.c_uint32 * 6)]
+    _fields_ = [("_limbs", ctypes.c_uint32 * LIMBS)]
 
 
 class EC_point(ctypes.Structure):
@@ -43,11 +43,11 @@ cuda_rho_pollard.run_rho_pollard.argtypes = [
 cuda_rho_pollard.run_rho_pollard.restype = None
 
 
-def num_to_limbs(number, limbs=6):
+def num_to_limbs(number):
     number = int(number)
     result = []
     mask = (1 << 32) - 1
-    for i in range(limbs):
+    for i in range(LIMBS):
         result.append(number & mask)
         number >>= 32
     return result
