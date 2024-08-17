@@ -17,7 +17,6 @@ __device__ uint32_t map_to_index(env192_t &bn_env, const dev_EC_point &P, const 
 
 __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_point *precomputed, EC_parameters *parameters, int32_t instances)
 {
-    // EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
     uint32_t instance;
     uint32_t thread_id;
 
@@ -62,17 +61,9 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
     {
         counter++;
         uint32_t precomp_index = map_to_index(bn192_env, W, mask);
-        // if (1)
-        // {
-        //     printf("th: %d, Ins: %d, block: %d. Precomputed index: %d\n",threadIdx.x, instance, blockIdx.x, precomp_index);
-        // }
         cgbn_load(bn192_env, R.x, &(SMEMprecomputed[precomp_index].x));
         cgbn_load(bn192_env, R.y, &(SMEMprecomputed[precomp_index].y));
         add_points(bn192_env, W, W, R, params);
-        // if ((counter) > 50)
-        // {
-        //     break;
-        // }
     }
     if (thread_id % TPI == 0)
     {
