@@ -95,16 +95,26 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, EC_point *precom
     EC_parameters *gpu_params;
     cgbn_error_report_t *report;
 
-    cudaCheckError(cudaSetDevice(0));
+    cudaSetDevice(0);
+    cudaCheckErrors("Failed to set device");
 
-    cudaCheckError(cudaMalloc((void **)&gpu_starting, sizeof(EC_point) * instances));
-    cudaCheckError(cudaMemcpy(gpu_starting, startingPts, sizeof(EC_point) * instances, cudaMemcpyHostToDevice));
+    cudaMalloc((void **)&gpu_starting, sizeof(EC_point) * instances);
+    cudaCheckErrors("Failed to allocate memory for starting points");
 
-    cudaCheckError(cudaMalloc((void **)&gpu_precomputed, sizeof(EC_point) * PRECOMPUTED_POINTS));
-    cudaCheckError(cudaMemcpy(gpu_precomputed, precomputed_points, sizeof(EC_point) * PRECOMPUTED_POINTS, cudaMemcpyHostToDevice));
+    cudaMemcpy(gpu_starting, startingPts, sizeof(EC_point) * instances, cudaMemcpyHostToDevice);
+    cudaCheckErrors("Failed to copy starting points to device");
 
-    cudaCheckError(cudaMalloc((void **)&gpu_params, sizeof(EC_parameters)));
-    cudaCheckError(cudaMemcpy(gpu_params, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice));
+    cudaMalloc((void **)&gpu_precomputed, sizeof(EC_point) * PRECOMPUTED_POINTS);
+    cudaCheckErrors("Failed to allocate memory for precomputed points");
+
+    cudaMemcpy(gpu_precomputed, precomputed_points, sizeof(EC_point) * PRECOMPUTED_POINTS, cudaMemcpyHostToDevice);
+    cudaCheckErrors("Failed to copy precomputed points to device");
+
+    cudaMalloc((void **)&gpu_params, sizeof(EC_parameters));
+    cudaCheckErrors("Failed to allocate memory for parameters");
+
+    cudaMemcpy(gpu_params, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice);
+    cudaCheckErrors("Failed to copy parameters to device");
 
     rho_pollard_args args;
     args.starting = gpu_starting;
@@ -112,20 +122,31 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, EC_point *precom
     args.parameters = gpu_params;
     args.instances = instances;
 
-    cudaCheckError(cgbn_error_report_alloc(&report));
+    cgbn_error_report_alloc(&report);
+    cudaCheckErrors("Failed to allocate memory for error report");
 
     // 512 threads per block (128 CGBN instances)
     rho_pollard<<<(instances + 127) / 128, 512>>>(report, args);
 
-    cudaCheckError(cudaDeviceSynchronize());
+    cudaDeviceSynchronize();
+    cudaCheckErrors("Kernel failed");
+
     CGBN_CHECK(report);
 
 
-    cudaCheckError(cudaMemcpy(startingPts, gpu_starting, sizeof(EC_point) * instances, cudaMemcpyDeviceToHost));
+    cudaMemcpy(startingPts, gpu_starting, sizeof(EC_point) * instances, cudaMemcpyDeviceToHost);
+    cudaCheckErrors("Failed to copy starting points to host");
 
-    cudaCheckError(cudaFree(gpu_starting));
-    cudaCheckError(cudaFree(gpu_precomputed));
-    cudaCheckError(cudaFree(gpu_params));
-    cudaCheckError(cgbn_error_report_free(report));
+    cudaFree(gpu_starting);
+    cudaCheckErrors("Failed to free memory for starting points");
+
+    cudaFree(gpu_precomputed);
+    cudaCheckErrors("Failed to free memory for precomputed points");
+
+    cudaFree(gpu_params);
+    cudaCheckErrors("Failed to free memory for parameters");
+
+    cgbn_error_report_free(report);
+    cudaCheckErrors("Failed to free memory for error report");
 }
 }

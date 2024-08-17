@@ -58,6 +58,18 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
     }
 }
 
+#define cudaCheckErrors(msg)                                                                                                                                   \
+    do                                                                                                                                                         \
+    {                                                                                                                                                          \
+        cudaError_t __err = cudaGetLastError();                                                                                                                \
+        if (__err != cudaSuccess)                                                                                                                              \
+        {                                                                                                                                                      \
+            fprintf(stderr, "Fatal error: %s (%s at %s:%d)\n", msg, cudaGetErrorString(__err), __FILE__, __LINE__);                                            \
+            exit(1);                                                                                                                                           \
+        }                                                                                                                                                      \
+    }                                                                                                                                                          \
+    while (0)
+
 // CGBN settings
 
 #define TPI 4
