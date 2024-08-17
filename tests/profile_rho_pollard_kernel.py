@@ -5,30 +5,29 @@ from sage.all import GF, EllipticCurve
 from settings import *
 from pathlib import Path
 
-LIMBS = 4
-PRECOMPUTED_POINTS = 1024
-INSTANCES = 4096
+PRECOMPUTED_POINTS = 2048
+INSTANCES = 5120
 ZEROS_COUNT = 15
 
 
-cuda_rho_pollard.run_rho_pollard.argtypes = [
-    ctypes.POINTER(EC_point),
-    ctypes.c_uint32,
-    ctypes.POINTER(EC_point),
-    ctypes.POINTER(EC_parameters),
-]
+# cuda_rho_pollard.run_rho_pollard.argtypes = [
+#     ctypes.POINTER(EC_point),
+#     ctypes.c_uint32,
+#     ctypes.POINTER(EC_point),
+#     ctypes.POINTER(EC_parameters),
+# ]
 
-cuda_rho_pollard.run_rho_pollard.restype = None
+# cuda_rho_pollard.run_rho_pollard.restype = None
 
 
-def num_to_limbs(number, limbs=6):
-    number = int(number)
-    result = []
-    mask = (1 << 32) - 1
-    for i in range(limbs):
-        result.append(number & mask)
-        number >>= 32
-    return result
+# def num_to_limbs(number, limbs=6):
+#     number = int(number)
+#     result = []
+#     mask = (1 << 32) - 1
+#     for i in range(limbs):
+#         result.append(number & mask)
+#         number >>= 32
+#     return result
 
 
 def limbs_to_num(limbs):
@@ -85,12 +84,12 @@ if __name__ == "__main__":
     )
     stop = time.time()
 
-    for i in range(INSTANCES):
-        result_x = list(p_points[i].x._limbs)
-        result_y = list(p_points[i].y._limbs)
-        x = limbs_to_num(result_x)
-        y = limbs_to_num(result_y)
+    # for i in range(INSTANCES):
+    #     result_x = list(p_points[i].x._limbs)
+    #     result_y = list(p_points[i].y._limbs)
+    #     x = limbs_to_num(result_x)
+    #     y = limbs_to_num(result_y)
 
-        print(E(x, y))
+    #     print(E(x, y))
 
     print(f"Finished in {stop-start}, found {INSTANCES} points")

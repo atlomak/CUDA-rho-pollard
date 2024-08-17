@@ -2,7 +2,7 @@
 #include <cstdio>
 #include "ec_points_ops.cu"
 
-#define PRECOMPUTED_POINTS 1024
+#define PRECOMPUTED_POINTS 2048
 
 __shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
 

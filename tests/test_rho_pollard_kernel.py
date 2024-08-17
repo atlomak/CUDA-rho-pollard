@@ -2,8 +2,8 @@ import ctypes
 from settings import *
 
 LEADING_ZEROS = 10
-PRECOMPUTED_POINTS = 1024
-INSTANCES = 4096
+PRECOMPUTED_POINTS = 2048
+INSTANCES = 5120
 
 
 def generate_precomputed_points():
@@ -58,7 +58,6 @@ def test_iteration_function(parameters):
     cuda_rho_pollard.run_rho_pollard(
         p_points, INSTANCES, p_precomputed_points, ctypes.byref(parameters)
     )
-
 
     for n in range(INSTANCES):
         W = starting_points[n]
