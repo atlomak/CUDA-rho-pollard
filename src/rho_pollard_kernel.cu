@@ -15,7 +15,18 @@ __device__ uint32_t map_to_index(env192_t &bn_env, const dev_EC_point &P, const 
     return cgbn_get_ui32(bn_env, t);
 }
 
-__global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_point *precomputed, EC_parameters *parameters, int32_t instances)
+typedef struct
+{
+    EC_point *starting;
+    EC_point *precomputed;
+    EC_parameters *parameters;
+    int32_t instances;
+    int32_t *stop_flag;
+    int32_t *warp_flags;
+    int32_t warps;
+} rho_pollard_args;
+
+__global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
 {
     uint32_t instance;
     uint32_t thread_id;
@@ -23,7 +34,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
     instance = (blockIdx.x * blockDim.x + threadIdx.x) / TPI;
     thread_id = (blockIdx.x * blockDim.x + threadIdx.x);
 
-    if (instance >= instances)
+    if (instance >= args.instances)
     {
         return;
     }
@@ -34,7 +45,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
         printf("block: %d\n", blockIdx.x);
         for (int i = 0; i < PRECOMPUTED_POINTS; i++)
         {
-            SMEMprecomputed[i] = precomputed[i];
+            SMEMprecomputed[i] = args.precomputed[i];
         }
     }
 
@@ -48,16 +59,16 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
 
     env192_t::cgbn_t mask;
 
-    cgbn_load(bn192_env, W.x, &(starting[instance].x));
-    cgbn_load(bn192_env, W.y, &(starting[instance].y));
+    cgbn_load(bn192_env, W.x, &(args.starting[instance].x));
+    cgbn_load(bn192_env, W.y, &(args.starting[instance].y));
 
-    cgbn_load(bn192_env, params.Pmod, &(parameters->Pmod));
-    cgbn_load(bn192_env, params.a, &(parameters->a));
+    cgbn_load(bn192_env, params.Pmod, &(args.parameters->Pmod));
+    cgbn_load(bn192_env, params.a, &(args.parameters->a));
 
     cgbn_set_ui32(bn192_env, mask, PRECOMPUTED_POINTS - 1);
 
     uint32_t counter = 0;
-    while (!is_distinguish(bn192_env, W, parameters->zeros_count))
+    while (!is_distinguish(bn192_env, W, args.parameters->zeros_count))
     {
         counter++;
         uint32_t precomp_index = map_to_index(bn192_env, W, mask);
@@ -71,8 +82,8 @@ __global__ void rho_pollard(cgbn_error_report_t *report, EC_point *starting, EC_
     }
     __syncthreads();
 
-    cgbn_store(bn192_env, &(starting[instance].x), W.x);
-    cgbn_store(bn192_env, &(starting[instance].y), W.y);
+    cgbn_store(bn192_env, &(args.starting[instance].x), W.x);
+    cgbn_store(bn192_env, &(args.starting[instance].y), W.y);
 }
 
 extern "C" {
@@ -95,10 +106,16 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, EC_point *precom
     cudaCheckError(cudaMalloc((void **)&gpu_params, sizeof(EC_parameters)));
     cudaCheckError(cudaMemcpy(gpu_params, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice));
 
+    rho_pollard_args args;
+    args.starting = gpu_starting;
+    args.precomputed = gpu_precomputed;
+    args.parameters = gpu_params;
+    args.instances = instances;
+
     cudaCheckError(cgbn_error_report_alloc(&report));
 
     // 512 threads per block (128 CGBN instances)
-    rho_pollard<<<(instances + 127) / 128, 512>>>(report, gpu_starting, gpu_precomputed, gpu_params, instances);
+    rho_pollard<<<(instances + 127) / 128, 512>>>(report, args);
 
     cudaCheckError(cudaDeviceSynchronize());
     CGBN_CHECK(report);
