@@ -7,8 +7,6 @@ import time
 from utils import num_to_limbs, limbs_to_num
 from settings import *
 
-PRECOMPUTED_POINTS = 1024
-
 
 class cgbn_mem_t(ctypes.Structure):
     _fields_ = [("_limbs", ctypes.c_uint32 * 6)]
@@ -58,8 +56,9 @@ async def GPUworker(zeros_count, instances, precomputed_points, queue: asyncio.Q
     cuda_rho_pollard = get_lib()
 
     while True:
+        precomputed_points_size = len(precomputed_points)
         p_points = (EC_point * instances)()
-        p_precomputed_points = (EC_point * PRECOMPUTED_POINTS)()
+        p_precomputed_points = (EC_point * precomputed_points_size)()
         parameters = EC_parameters()
 
         parameters.Pmod._limbs[:] = num_to_limbs(field_order)
@@ -74,7 +73,7 @@ async def GPUworker(zeros_count, instances, precomputed_points, queue: asyncio.Q
             p_points[i].x._limbs[:] = num_to_limbs(point[0])
             p_points[i].y._limbs[:] = num_to_limbs(point[1])
 
-        for i in range(PRECOMPUTED_POINTS):
+        for i in range(precomputed_points_size):
             point = precomputed_points[i]
 
             p_precomputed_points[i].x._limbs[:] = num_to_limbs(point[0])

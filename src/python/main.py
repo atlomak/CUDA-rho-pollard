@@ -6,7 +6,6 @@ import time
 from settings import E, P, Q, curve_order
 from gpu_worker import GPUworker
 
-LIMBS = 4
 PRECOMPUTED_POINTS = 1024
 INSTANCES = 5120
 ZEROS_COUNT = 15
