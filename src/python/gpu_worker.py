@@ -49,6 +49,7 @@ def get_lib():
     cuda_rho_pollard.run_rho_pollard.argtypes = [
         ctypes.POINTER(EC_point),
         ctypes.c_uint32,
+        ctypes.c_uint32,
         ctypes.POINTER(EC_point),
         ctypes.POINTER(EC_parameters),
     ]
@@ -70,12 +71,14 @@ def generate_starting_points(instances):
     return points, seeds
 
 
-async def GPUworker(zeros_count, instances, precomputed_points, queue: asyncio.Queue):
+async def GPUworker(
+    zeros_count, instances, n, precomputed_points, queue: asyncio.Queue
+):
     cuda_rho_pollard = get_lib()
 
     while True:
         precomputed_points_size = len(precomputed_points)
-        p_points = (EC_point * instances)()
+        p_points = (EC_point * (instances * n))()
         p_precomputed_points = (EC_point * precomputed_points_size)()
         parameters = EC_parameters()
 
@@ -83,9 +86,9 @@ async def GPUworker(zeros_count, instances, precomputed_points, queue: asyncio.Q
         parameters.a._limbs[:] = num_to_limbs(curve_a)
         parameters.zeros_count = zeros_count
 
-        starting_points, seeds = generate_starting_points(instances)
+        starting_points, seeds = generate_starting_points(instances * n)
 
-        for i in range(instances):
+        for i in range(instances * n):
             point = starting_points[i]
 
             p_points[i].x._limbs[:] = num_to_limbs(point[0])
@@ -101,12 +104,13 @@ async def GPUworker(zeros_count, instances, precomputed_points, queue: asyncio.Q
             cuda_rho_pollard.run_rho_pollard,
             p_points,
             instances,
+            n,
             p_precomputed_points,
             ctypes.byref(parameters),
         )
 
         result_points = []
-        for i in range(instances):
+        for i in range(instances * n):
             result_x = limbs_to_num(p_points[i].x._limbs)
             result_y = limbs_to_num(p_points[i].y._limbs)
             result_points.append((result_x, result_y))

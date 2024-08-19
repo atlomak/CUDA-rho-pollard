@@ -2,7 +2,7 @@
 #include <cstdio>
 #include "ec_points_ops.cu"
 
-#define PRECOMPUTED_POINTS 2048
+#define PRECOMPUTED_POINTS 1024
 
 __shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
@@ -20,10 +20,8 @@ typedef struct
     EC_point *starting;
     EC_point *precomputed;
     EC_parameters *parameters;
-    int32_t instances;
-    int32_t *stop_flag;
-    int32_t *warp_flags;
-    int32_t warps;
+    uint32_t instances;
+    uint32_t n;
 } rho_pollard_args;
 
 __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
@@ -59,35 +57,40 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
 
     env192_t::cgbn_t mask;
 
-    cgbn_load(bn192_env, W.x, &(args.starting[instance].x));
-    cgbn_load(bn192_env, W.y, &(args.starting[instance].y));
 
     cgbn_load(bn192_env, params.Pmod, &(args.parameters->Pmod));
     cgbn_load(bn192_env, params.a, &(args.parameters->a));
 
     cgbn_set_ui32(bn192_env, mask, PRECOMPUTED_POINTS - 1);
 
-    uint32_t counter = 0;
-    while (!is_distinguish(bn192_env, W, args.parameters->zeros_count))
+    int offset;
+    for (int i = 0; i < args.n; i++)
     {
-        counter++;
-        uint32_t precomp_index = map_to_index(bn192_env, W, mask);
-        cgbn_load(bn192_env, R.x, &(SMEMprecomputed[precomp_index].x));
-        cgbn_load(bn192_env, R.y, &(SMEMprecomputed[precomp_index].y));
-        add_points(bn192_env, W, W, R, params);
-    }
-    if (thread_id % TPI == 0)
-    {
-        printf("Instance %d found distinguish point, after %d iterations!\n", instance, counter);
-    }
-    __syncthreads();
+        offset = i * args.instances;
+        cgbn_load(bn192_env, W.x, &(args.starting[instance + offset].x));
+        cgbn_load(bn192_env, W.y, &(args.starting[instance + offset].y));
 
-    cgbn_store(bn192_env, &(args.starting[instance].x), W.x);
-    cgbn_store(bn192_env, &(args.starting[instance].y), W.y);
+        uint32_t counter = 0;
+        while (!is_distinguish(bn192_env, W, args.parameters->zeros_count))
+        {
+            counter++;
+            uint32_t precomp_index = map_to_index(bn192_env, W, mask);
+            cgbn_load(bn192_env, R.x, &(SMEMprecomputed[precomp_index].x));
+            cgbn_load(bn192_env, R.y, &(SMEMprecomputed[precomp_index].y));
+            add_points(bn192_env, W, W, R, params);
+        }
+        if (thread_id % TPI == 0)
+        {
+            printf("%d ,Instance %d found distinguish point, after %d iterations!\n", i, instance, counter);
+        }
+
+        cgbn_store(bn192_env, &(args.starting[instance + offset].x), W.x);
+        cgbn_store(bn192_env, &(args.starting[instance + offset].y), W.y);
+    }
 }
 
 extern "C" {
-void run_rho_pollard(EC_point *startingPts, uint32_t instances, EC_point *precomputed_points, EC_parameters *parameters)
+void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, EC_point *precomputed_points, EC_parameters *parameters)
 {
     printf("Starting rho pollard: zeroes count %d", parameters->zeros_count);
     EC_point *gpu_starting;
@@ -98,10 +101,10 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, EC_point *precom
     cudaSetDevice(0);
     cudaCheckErrors("Failed to set device");
 
-    cudaMalloc((void **)&gpu_starting, sizeof(EC_point) * instances);
+    cudaMallocHost((void **)&gpu_starting, sizeof(EC_point) * instances * n);
     cudaCheckErrors("Failed to allocate memory for starting points");
 
-    cudaMemcpy(gpu_starting, startingPts, sizeof(EC_point) * instances, cudaMemcpyHostToDevice);
+    cudaMemcpy(gpu_starting, startingPts, sizeof(EC_point) * instances * n, cudaMemcpyHostToDevice);
     cudaCheckErrors("Failed to copy starting points to device");
 
     cudaMalloc((void **)&gpu_precomputed, sizeof(EC_point) * PRECOMPUTED_POINTS);
@@ -121,12 +124,13 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, EC_point *precom
     args.precomputed = gpu_precomputed;
     args.parameters = gpu_params;
     args.instances = instances;
+    args.n = n;
 
     cgbn_error_report_alloc(&report);
     cudaCheckErrors("Failed to allocate memory for error report");
 
     // 512 threads per block (128 CGBN instances)
-    rho_pollard<<<(instances + 127) / 128, 512>>>(report, args);
+    rho_pollard<<<(instances + 63) / 64, 256>>>(report, args);
 
     cudaDeviceSynchronize();
     cudaCheckErrors("Kernel failed");
@@ -134,7 +138,7 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, EC_point *precom
     CGBN_CHECK(report);
 
 
-    cudaMemcpy(startingPts, gpu_starting, sizeof(EC_point) * instances, cudaMemcpyDeviceToHost);
+    cudaMemcpy(startingPts, gpu_starting, sizeof(EC_point) * instances * n, cudaMemcpyDeviceToHost);
     cudaCheckErrors("Failed to copy starting points to host");
 
     cudaFree(gpu_starting);

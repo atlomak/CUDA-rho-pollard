@@ -7,8 +7,9 @@ from settings import E, P, Q, curve_order
 from gpu_worker import GPUworker
 
 PRECOMPUTED_POINTS = 2048
-INSTANCES = 5120
-ZEROS_COUNT = 20
+INSTANCES = 10240
+N = 20
+ZEROS_COUNT = 15
 
 
 class PrecomputedPoint:
@@ -93,11 +94,11 @@ async def main():
     queue = asyncio.Queue()
 
     gpu_worker = asyncio.create_task(
-        GPUworker(ZEROS_COUNT, INSTANCES, precomputed_points_worker, queue)
+        GPUworker(ZEROS_COUNT, INSTANCES, N, precomputed_points_worker, queue)
     )
 
     distinguish_points = {}
-    while len(distinguish_points) < 20000:
+    while len(distinguish_points) < 1:
         points, seeds = await queue.get()
 
         print("Got new distinguish points")
