@@ -102,6 +102,8 @@ typedef struct
 {
     env192_t::cgbn_t Pmod;
     env192_t::cgbn_t a;
+    env192_t::cgbn_t approx;
+    uint32_t clz_count;
 } dev_Parameters;
 
 // prototypes

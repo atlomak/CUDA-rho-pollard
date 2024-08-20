@@ -25,13 +25,17 @@ __device__ void add_points(env192_t bn_env, dev_EC_point &R, const dev_EC_point 
     // Montgomery space
 
     env192_t::cgbn_t x1, y1, x2, y2;
+    y1 = P1.y;
+    x1 = P1.x;
+    y2 = P2.y;
+    x2 = P2.x;
 
-    uint32_t np0;
-    np0 = cgbn_bn2mont(bn_env, x1, P1.x, params.Pmod);
-    cgbn_bn2mont(bn_env, y1, P1.y, params.Pmod);
-    cgbn_bn2mont(bn_env, x2, P2.x, params.Pmod);
-    cgbn_bn2mont(bn_env, y2, P2.y, params.Pmod);
-    cgbn_bn2mont(bn_env, t2, t2, params.Pmod);
+    // uint32_t np0;
+    // np0 = cgbn_bn2mont(bn_env, x1, P1.x, params.Pmod);
+    // cgbn_bn2mont(bn_env, y1, P1.y, params.Pmod);
+    // cgbn_bn2mont(bn_env, x2, P2.x, params.Pmod);
+    // cgbn_bn2mont(bn_env, y2, P2.y, params.Pmod);
+    // cgbn_bn2mont(bn_env, t2, t2, params.Pmod);
 
     env192_t::cgbn_t t1;
 
@@ -42,9 +46,14 @@ __device__ void add_points(env192_t bn_env, dev_EC_point &R, const dev_EC_point 
 
     env192_t::cgbn_t s, s_sq, x3, y3, t3;
 
-    cgbn_mont_mul(bn_env, s, t1, t2, params.Pmod, np0); // s = (y1-y2)/(x1-x2) mod Pmod // tested
+    env192_t::cgbn_wide_t wide;
+    cgbn_mul_wide(bn_env, wide, t1, t2);
+    // cgbn_mont_mul(bn_env, s, t1, t2, params.Pmod, np0); // s = (y1-y2)/(x1-x2) mod Pmod // tested
+    cgbn_barrett_rem_wide(bn_env, s, wide, params.Pmod, params.approx, params.clz_count);
 
-    cgbn_mont_sqr(bn_env, s_sq, s, params.Pmod, np0); // s^2 mod Pmod // tested
+    cgbn_sqr_wide(bn_env, wide, s);
+    // cgbn_mont_sqr(bn_env, s_sq, s, params.Pmod, np0); // s^2 mod Pmod // tested
+    cgbn_barrett_rem_wide(bn_env, s_sq, wide, params.Pmod, params.approx, params.clz_count);
 
     cgbn_add(bn_env, t3, x1, x2); // x1 + x2
     if (cgbn_compare(bn_env, t3, params.Pmod) > 0)
@@ -62,15 +71,17 @@ __device__ void add_points(env192_t bn_env, dev_EC_point &R, const dev_EC_point 
         cgbn_add(bn_env, t3, t3, params.Pmod);
     }
 
-    cgbn_mont_mul(bn_env, t3, t3, s, params.Pmod, np0);
+    cgbn_mul_wide(bn_env, wide, t3, s);
+    cgbn_barrett_rem_wide(bn_env, t3, wide, params.Pmod, params.approx, params.clz_count);
+    // cgbn_mont_mul(bn_env, t3, t3, s, params.Pmod, np0);
 
     if (cgbn_sub(bn_env, y3, t3, y1))
     {
         cgbn_add(bn_env, y3, y3, params.Pmod);
     }
 
-    cgbn_mont2bn(bn_env, x3, x3, params.Pmod, np0);
-    cgbn_mont2bn(bn_env, y3, y3, params.Pmod, np0);
+    // cgbn_mont2bn(bn_env, x3, x3, params.Pmod, np0);
+    // cgbn_mont2bn(bn_env, y3, y3, params.Pmod, np0);
 
     // cgbn_sub(bn_env, x3, s_sq, t1);
 

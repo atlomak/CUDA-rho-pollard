@@ -55,11 +55,13 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
     dev_EC_point W, R;
     dev_Parameters params;
 
+
     env192_t::cgbn_t mask;
 
 
     cgbn_load(bn192_env, params.Pmod, &(args.parameters->Pmod));
     cgbn_load(bn192_env, params.a, &(args.parameters->a));
+    params.clz_count = cgbn_barrett_approximation(bn192_env, params.approx, params.Pmod);
 
     cgbn_set_ui32(bn192_env, mask, PRECOMPUTED_POINTS - 1);
 
