@@ -6,9 +6,9 @@ import time
 from settings import E, P, Q, curve_order
 from gpu_worker import GPUworker
 
-PRECOMPUTED_POINTS = 2048
+PRECOMPUTED_POINTS = 1024
 INSTANCES = 10240
-N = 20
+N = 5
 ZEROS_COUNT = 15
 
 
@@ -98,7 +98,7 @@ async def main():
     )
 
     distinguish_points = {}
-    while len(distinguish_points) < 1:
+    while len(distinguish_points) < 200:
         points, seeds = await queue.get()
 
         print("Got new distinguish points")
@@ -125,6 +125,7 @@ async def main():
             else:
                 distinguish_points[(point[0], point[1])] = seed
         else:
+            print(f"Got {len(distinguish_points)} points")
             continue
         break
 

@@ -5,7 +5,8 @@
 #include "ec_points_ops.cuh"
 
 
-__device__ void add_points(env192_t bn_env, dev_EC_point &R, const dev_EC_point &P1, const dev_EC_point &P2, const dev_Parameters &params)
+__device__ void add_points(env192_t bn_env, dev_EC_point &R, const dev_EC_point &P1, const dev_EC_point &P2, const dev_Parameters &params,
+                           env192_t::cgbn_t &t2)
 {
     if (cgbn_equals(bn_env, P1.x, P2.x) && cgbn_equals(bn_env, P1.y, P2.y))
     {
@@ -13,14 +14,8 @@ __device__ void add_points(env192_t bn_env, dev_EC_point &R, const dev_EC_point 
         return;
     }
 
-    env192_t::cgbn_t t2;
-    if (cgbn_sub(bn_env, t2, P1.x, P2.x)) // x1 - x2 mod Pmod
-    {
-        cgbn_add(bn_env, t2, t2, params.Pmod); // if t2 < 0 then Pmod + (-t2) % 2^BITS ==
-    }
 
 
-    cgbn_modular_inverse(bn_env, t2, t2, params.Pmod); // 1/(x1-x2) mod Pmod
 
     // Montgomery space
 
