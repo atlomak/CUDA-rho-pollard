@@ -115,3 +115,4 @@ async def GPUworker(
             result_y = limbs_to_num(p_points[i].y._limbs)
             result_points.append((result_x, result_y))
         await queue.put((result_points, seeds))
+        break

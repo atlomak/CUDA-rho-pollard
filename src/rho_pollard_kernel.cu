@@ -3,7 +3,7 @@
 #include "ec_points_ops.cu"
 
 #define PRECOMPUTED_POINTS 1024
-#define BATCH_SIZE 5
+#define BATCH_SIZE 8
 
 __shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
@@ -65,23 +65,25 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
 
     cgbn_set_ui32(bn192_env, mask, PRECOMPUTED_POINTS - 1);
 
-    int offset;
 
-    env192_t::cgbn_t b[10];
+    env192_t::cgbn_t b[BATCH_SIZE];
     dev_EC_point W[BATCH_SIZE], R[BATCH_SIZE];
 
-    for (int i = 0; i < args.n; i++)
+    int read_offset;
+    for (int i = 0; i < BATCH_SIZE; i++)
     {
-        offset = i * args.instances;
-        cgbn_load(bn192_env, W[i].x, &(args.starting[instance + offset].x));
-        cgbn_load(bn192_env, W[i].y, &(args.starting[instance + offset].y));
+        read_offset = i * args.instances;
+        cgbn_load(bn192_env, W[i].x, &(args.starting[instance + read_offset].x));
+        cgbn_load(bn192_env, W[i].y, &(args.starting[instance + read_offset].y));
     }
+    read_offset += args.instances; // Dont read from same offset twice
 
-    uint32_t counter = args.n;
+    int counter = 0;
+    int found_flags[BATCH_SIZE] = {0};
     while (counter < args.n)
     {
 
-        for (int i = 0; i < args.n; i++)
+        for (int i = 0; i < BATCH_SIZE; i++)
         {
             uint32_t precom_index = map_to_index(bn192_env, W[i], mask);
             cgbn_load(bn192_env, R[i].x, &(SMEMprecomputed[precom_index].x));
@@ -89,7 +91,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
         }
 
         env192_t::cgbn_t a[BATCH_SIZE];
-        for (int i = 0; i < args.n; i++)
+        for (int i = 0; i < BATCH_SIZE; i++)
         {
             if (cgbn_sub(bn192_env, a[i], W[i].x, R[i].x))
             {
@@ -100,7 +102,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
         env192_t::cgbn_t v;
         cgbn_set_ui32(bn192_env, v, 1);
 
-        for (int i = 0; i < args.n; i++)
+        for (int i = 0; i < BATCH_SIZE; i++)
         {
             env192_t::cgbn_wide_t wide;
             cgbn_set(bn192_env, b[i], v);
@@ -111,7 +113,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
         env192_t::cgbn_t x;
         cgbn_modular_inverse(bn192_env, x, v, params.Pmod);
 
-        for (int i = args.n - 1; i >= 0; i--)
+        for (int i = BATCH_SIZE - 1; i >= 0; i--)
         {
             env192_t::cgbn_wide_t wide;
             cgbn_mul_wide(bn192_env, wide, x, b[i]);
@@ -121,22 +123,34 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
             cgbn_barrett_rem_wide(bn192_env, x, wide, params.Pmod, params.approx, params.clz_count);
         }
 
-        for (int i = 0; i < args.n; i++)
+        for (int i = 0; i < BATCH_SIZE; i++)
         {
-            add_points(bn192_env, W[i], W[i], R[i], params, b[i]);
+            if (found_flags[i] != 1)
+            {
+                add_points(bn192_env, W[i], W[i], R[i], params, b[i]);
+            }
         }
 
-        for (int i = 0; i < args.n; i++)
+        for (int i = 0; i < BATCH_SIZE; i++)
         {
-            if (is_distinguish(bn192_env, W[i], args.parameters->zeros_count))
+            if (found_flags[i] != 1 && is_distinguish(bn192_env, W[i], args.parameters->zeros_count))
             {
-                counter++;
-                offset = i * args.instances;
+                int offset;
+                offset = counter * args.instances;
                 cgbn_store(bn192_env, &(args.starting[instance + offset].x), W[i].x);
                 cgbn_store(bn192_env, &(args.starting[instance + offset].y), W[i].y);
+                counter++;
                 if (thread_id % TPI == 0)
                 {
-                    printf("%d ,Instance %d found distinguish point!\n", i, instance);
+                    printf("counter %d ,Instance %d found distinguish point!\n", counter, instance);
+                }
+                found_flags[i] = 1;
+                if (read_offset < args.instances * args.n)
+                {
+                    cgbn_load(bn192_env, W[i].x, &(args.starting[instance + read_offset].x));
+                    cgbn_load(bn192_env, W[i].y, &(args.starting[instance + read_offset].y));
+                    read_offset += args.instances;
+                    found_flags[i] = 0;
                 }
             }
         }
@@ -183,8 +197,32 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, EC_p
     cgbn_error_report_alloc(&report);
     cudaCheckErrors("Failed to allocate memory for error report");
 
+    int numBlocks; // Occupancy in terms of active blocks
+    int blockSize = 512;
+
+    // These variables are used to convert occupancy to warps
+    int device;
+    cudaDeviceProp prop;
+    int activeWarps;
+    int maxWarps;
+
+    cudaGetDevice(&device);
+    cudaGetDeviceProperties(&prop, device);
+
+    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocks, rho_pollard, blockSize, 0);
+
+    activeWarps = numBlocks * blockSize / prop.warpSize;
+    maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
+
+    printf("Active warps: %d\n", activeWarps);
+    printf("Occupancy: %f\n", (double)activeWarps / maxWarps);
+
+    cudaOccupancyMaxPotentialBlockSize(&numBlocks, &blockSize, rho_pollard, 0, 0);
+
+    printf("Max potential block size: %d\n", blockSize);
+
     // 512 threads per block (128 CGBN instances)
-    rho_pollard<<<(instances + 127) / 128, 512>>>(report, args);
+    rho_pollard<<<(instances + 15) / 16, 512>>>(report, args);
 
     cudaDeviceSynchronize();
     cudaCheckErrors("Kernel failed");

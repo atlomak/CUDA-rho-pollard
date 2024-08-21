@@ -7,8 +7,8 @@ from settings import E, P, Q, curve_order
 from gpu_worker import GPUworker
 
 PRECOMPUTED_POINTS = 1024
-INSTANCES = 10240
-N = 5
+INSTANCES = 640
+N = 15
 ZEROS_COUNT = 15
 
 
@@ -68,6 +68,8 @@ def calculate_ab(seed, precomputed_points: list[PrecomputedPoint]):
         W = W + R
     a_sum = a_sum % curve_order
     b_sum = b_sum % curve_order
+    print("POINT FROM SEED:")
+    print(W)
     return (a_sum, b_sum)
 
 
@@ -98,18 +100,21 @@ async def main():
     )
 
     distinguish_points = {}
-    while len(distinguish_points) < 200:
+    while len(distinguish_points) < 1:
         points, seeds = await queue.get()
 
         print("Got new distinguish points")
         print(f"Currently have {len(distinguish_points)}")
 
         for i in range(len(points)):
+            assert is_distinguish(points[i][0])
+            E(points[i][0], points[i][1])
             point = points[i]
             seed = seeds[i]
             if is_collision(point, seed, distinguish_points):
                 print("Collision!")
 
+                assert is_distinguish(point[0])
                 print(E(point[0], point[1]))
                 print(f"Seed 1: {seed}")
 
