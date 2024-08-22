@@ -3,7 +3,7 @@
 #include "ec_points_ops.cu"
 
 #define PRECOMPUTED_POINTS 1024
-#define BATCH_SIZE 5
+#define BATCH_SIZE 6
 
 __shared__ PCMP_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
@@ -25,7 +25,7 @@ typedef struct
     uint32_t n;
 } rho_pollard_args;
 
-__global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
+__global__ __launch_bounds__(256, 2) void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
 {
     uint32_t instance;
     uint32_t thread_id;
@@ -201,7 +201,7 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, PCMP
     cudaCheckErrors("Failed to allocate memory for error report");
 
     int numBlocks; // Occupancy in terms of active blocks
-    int blockSize = 512;
+    int blockSize = 256;
 
     // These variables are used to convert occupancy to warps
     int device;
@@ -225,7 +225,7 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, PCMP
     printf("Max potential block size: %d\n", blockSize);
 
     // 512 threads per block (128 CGBN instances)
-    rho_pollard<<<(instances + 15) / 16, 512>>>(report, args);
+    rho_pollard<<<(instances + 7) / 8, 256>>>(report, args);
 
     cudaDeviceSynchronize();
     cudaCheckErrors("Kernel failed");
