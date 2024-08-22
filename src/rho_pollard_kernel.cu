@@ -3,9 +3,9 @@
 #include "ec_points_ops.cu"
 
 #define PRECOMPUTED_POINTS 1024
-#define BATCH_SIZE 8
+#define BATCH_SIZE 5
 
-__shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
+__shared__ PCMP_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
 __device__ uint32_t is_distinguish(env192_t &bn_env, const dev_EC_point &P, uint32_t zeros_count) { return (cgbn_ctz(bn_env, P.x) >= zeros_count); }
 
@@ -19,7 +19,7 @@ __device__ uint32_t map_to_index(env192_t &bn_env, const dev_EC_point &P, const 
 typedef struct
 {
     EC_point *starting;
-    EC_point *precomputed;
+    PCMP_point *precomputed;
     EC_parameters *parameters;
     uint32_t instances;
     uint32_t n;
@@ -75,6 +75,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
         read_offset = i * args.instances;
         cgbn_load(bn192_env, W[i].x, &(args.starting[instance + read_offset].x));
         cgbn_load(bn192_env, W[i].y, &(args.starting[instance + read_offset].y));
+        cgbn_load(bn192_env, W[i].seed, &(args.starting[instance + read_offset].seed));
     }
     read_offset += args.instances; // Dont read from same offset twice
 
@@ -139,6 +140,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
                 offset = counter * args.instances;
                 cgbn_store(bn192_env, &(args.starting[instance + offset].x), W[i].x);
                 cgbn_store(bn192_env, &(args.starting[instance + offset].y), W[i].y);
+                cgbn_store(bn192_env, &(args.starting[instance + offset].seed), W[i].seed);
                 counter++;
                 if (thread_id % TPI == 0)
                 {
@@ -149,6 +151,7 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
                 {
                     cgbn_load(bn192_env, W[i].x, &(args.starting[instance + read_offset].x));
                     cgbn_load(bn192_env, W[i].y, &(args.starting[instance + read_offset].y));
+                    cgbn_load(bn192_env, W[i].seed, &(args.starting[instance + read_offset].seed));
                     read_offset += args.instances;
                     found_flags[i] = 0;
                 }
@@ -158,11 +161,11 @@ __global__ void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
 }
 
 extern "C" {
-void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, EC_point *precomputed_points, EC_parameters *parameters)
+void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, PCMP_point *precomputed_points, EC_parameters *parameters)
 {
     printf("Starting rho pollard: zeroes count %d", parameters->zeros_count);
     EC_point *gpu_starting;
-    EC_point *gpu_precomputed;
+    PCMP_point *gpu_precomputed;
     EC_parameters *gpu_params;
     cgbn_error_report_t *report;
 
@@ -175,10 +178,10 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, EC_p
     cudaMemcpy(gpu_starting, startingPts, sizeof(EC_point) * instances * n, cudaMemcpyHostToDevice);
     cudaCheckErrors("Failed to copy starting points to device");
 
-    cudaMalloc((void **)&gpu_precomputed, sizeof(EC_point) * PRECOMPUTED_POINTS);
+    cudaMalloc((void **)&gpu_precomputed, sizeof(PCMP_point) * PRECOMPUTED_POINTS);
     cudaCheckErrors("Failed to allocate memory for precomputed points");
 
-    cudaMemcpy(gpu_precomputed, precomputed_points, sizeof(EC_point) * PRECOMPUTED_POINTS, cudaMemcpyHostToDevice);
+    cudaMemcpy(gpu_precomputed, precomputed_points, sizeof(PCMP_point) * PRECOMPUTED_POINTS, cudaMemcpyHostToDevice);
     cudaCheckErrors("Failed to copy precomputed points to device");
 
     cudaMalloc((void **)&gpu_params, sizeof(EC_parameters));

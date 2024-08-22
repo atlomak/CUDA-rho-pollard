@@ -1,15 +1,16 @@
 import asyncio
 from sage.all import inverse_mod
 from hashlib import md5
+from utils import is_distinguish
 import time
 
 from settings import E, P, Q, curve_order
 from gpu_worker import GPUworker
 
 PRECOMPUTED_POINTS = 1024
-INSTANCES = 640
-N = 15
-ZEROS_COUNT = 15
+INSTANCES = 320
+N = 10
+ZEROS_COUNT = 2
 
 
 class PrecomputedPoint:
@@ -49,17 +50,11 @@ def map_to_index(x):
     return int(x) & (PRECOMPUTED_POINTS - 1)
 
 
-def is_distinguish(x):
-    mask = 1 << ZEROS_COUNT
-    mask = mask - 1
-    return (int(x) & mask) == 0
-
-
 def calculate_ab(seed, precomputed_points: list[PrecomputedPoint]):
     a_sum = seed
     b_sum = 0
     W = P * seed
-    while not is_distinguish(W[0]):
+    while not is_distinguish(W[0], ZEROS_COUNT):
         precomp_index = map_to_index(W[0])
         precomputed = precomputed_points[precomp_index]
         R = precomputed.point
@@ -71,6 +66,20 @@ def calculate_ab(seed, precomputed_points: list[PrecomputedPoint]):
     print("POINT FROM SEED:")
     print(W)
     return (a_sum, b_sum)
+
+
+def test_seed(seed, precomputed_points: list[PrecomputedPoint]):
+    a_sum = seed
+    b_sum = 0
+    W = P * seed
+    while not is_distinguish(W[0], ZEROS_COUNT):
+        precomp_index = map_to_index(W[0])
+        precomputed = precomputed_points[precomp_index]
+        R = precomputed.point
+        a_sum = a_sum + precomputed.a
+        b_sum = b_sum + precomputed.b
+        W = W + R
+    return W
 
 
 def find_discrete_log(a1, b1, a2, b2):
@@ -107,14 +116,18 @@ async def main():
         print(f"Currently have {len(distinguish_points)}")
 
         for i in range(len(points)):
-            assert is_distinguish(points[i][0])
-            E(points[i][0], points[i][1])
+            assert is_distinguish(points[i][0], ZEROS_COUNT)
+            point = E(points[i][0], points[i][1])
+            print(f"Point {i}: {point}")
+            print(f"Seed {i}: {seeds[i]}")
+            print(f"FROM SEED: {test_seed(seeds[i], precomputed_points)}")
+            assert test_seed(seeds[i], precomputed_points) == point
+
             point = points[i]
             seed = seeds[i]
             if is_collision(point, seed, distinguish_points):
                 print("Collision!")
 
-                assert is_distinguish(point[0])
                 print(E(point[0], point[1]))
                 print(f"Seed 1: {seed}")
 
