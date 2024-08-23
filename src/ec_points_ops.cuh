@@ -95,6 +95,13 @@ typedef struct
 
 typedef struct
 {
+    env192_t::cgbn_local_t x;
+    env192_t::cgbn_local_t y;
+    env192_t::cgbn_local_t seed;
+} dev_EC_point_local;
+
+typedef struct
+{
     env192_t::cgbn_t x;
     env192_t::cgbn_t y;
     env192_t::cgbn_t seed;

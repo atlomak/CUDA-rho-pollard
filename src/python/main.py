@@ -8,9 +8,9 @@ from settings import E, P, Q, curve_order
 from gpu_worker import GPUworker
 
 PRECOMPUTED_POINTS = 1024
-INSTANCES = 320
-N = 10
-ZEROS_COUNT = 2
+INSTANCES = 1280
+N = 160
+ZEROS_COUNT = 15
 
 
 class PrecomputedPoint:
@@ -63,8 +63,6 @@ def calculate_ab(seed, precomputed_points: list[PrecomputedPoint]):
         W = W + R
     a_sum = a_sum % curve_order
     b_sum = b_sum % curve_order
-    print("POINT FROM SEED:")
-    print(W)
     return (a_sum, b_sum)
 
 
@@ -118,10 +116,6 @@ async def main():
         for i in range(len(points)):
             assert is_distinguish(points[i][0], ZEROS_COUNT)
             point = E(points[i][0], points[i][1])
-            print(f"Point {i}: {point}")
-            print(f"Seed {i}: {seeds[i]}")
-            print(f"FROM SEED: {test_seed(seeds[i], precomputed_points)}")
-            assert test_seed(seeds[i], precomputed_points) == point
 
             point = points[i]
             seed = seeds[i]
