@@ -66,20 +66,6 @@ def calculate_ab(seed, precomputed_points: list[PrecomputedPoint]):
     return (a_sum, b_sum)
 
 
-def test_seed(seed, precomputed_points: list[PrecomputedPoint]):
-    a_sum = seed
-    b_sum = 0
-    W = P * seed
-    while not is_distinguish(W[0], ZEROS_COUNT):
-        precomp_index = map_to_index(W[0])
-        precomputed = precomputed_points[precomp_index]
-        R = precomputed.point
-        a_sum = a_sum + precomputed.a
-        b_sum = b_sum + precomputed.b
-        W = W + R
-    return W
-
-
 def find_discrete_log(a1, b1, a2, b2):
     print(f"a1: {a1}, b1: {b1}\n a2: {a2}, b2: {b2}")
     if b1 < 0:
