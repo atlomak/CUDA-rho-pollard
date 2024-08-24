@@ -12,7 +12,7 @@ from gpu_worker import EC_point, GPUworker, limbs_to_num, num_to_limbs
 
 PRECOMPUTED_POINTS = 1024
 INSTANCES = 5120
-ZEROS_COUNT = 20
+ZEROS_COUNT = 17
 
 POINTS_PER_WARP = 8
 
@@ -50,11 +50,7 @@ def is_collision(point: tuple[int, int], seed, distinguish_points: dict):
     x = point[0]
     y = point[1]
     xy = (x, y)
-    if xy in distinguish_points and distinguish_points[xy] != seed:
-        return True
-    elif xy in distinguish_points and distinguish_points[xy] == seed:
-        print("Same seed")
-    return False
+    return xy in distinguish_points and distinguish_points[xy] != seed
 
 
 # Iteration function
@@ -135,7 +131,7 @@ def main():
 
     distinguish_points = {}
 
-    while len(distinguish_points) < 100000:
+    while len(distinguish_points) < 20480:
         p_starting_points = (EC_point * POINTS_PER_WARP)()
 
         new_starting_points, seeds = generate_starting_points(POINTS_PER_WARP)
@@ -188,9 +184,6 @@ def main():
         print(f"Got {len(distinguish_points)} points")
 
     print(f"Got {len(distinguish_points)} points")
-    socket.recv()
-    socket.send(b"")
-    exit(0)
 
 
 if __name__ == "__main__":
