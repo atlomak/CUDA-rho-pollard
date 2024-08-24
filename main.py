@@ -1,11 +1,11 @@
 import asyncio
 from sage.all import inverse_mod
 from hashlib import md5
-from utils import is_distinguish
+from src.python.utils import is_distinguish
 import time
 
-from settings import E, P, Q, curve_order
-from gpu_worker import GPUworker
+from src.python.elliptic_curve import E, P, Q, curve_order
+from src.python.gpu_worker import GPUworker
 
 PRECOMPUTED_POINTS = 1024
 INSTANCES = 1280

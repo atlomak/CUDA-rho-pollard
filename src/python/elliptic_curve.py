@@ -21,14 +21,3 @@ E = EllipticCurve(F, [curve_a, curve_b])
 
 P = E(P_x, P_y)
 Q = E(Q_x, Q_y)
-
-
-# field_order = 0xD3915
-# F = GF(field_order)
-# curve_a = 738492
-# curve_b = 694682
-# r = 926251
-# E = EllipticCurve(F, [curve_a, curve_b])
-# curve_order = E.order()
-# P = E(184224, 74658)
-# Q = 42 * P

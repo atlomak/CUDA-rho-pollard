@@ -3,51 +3,10 @@ import ctypes
 from pathlib import Path
 from hashlib import md5
 import time
-from utils import is_distinguish, num_to_limbs, limbs_to_num
+from .utils import is_distinguish, num_to_limbs, limbs_to_num
 
-from settings import *
-
-LIMBS = 3
-
-
-class cgbn_mem_t(ctypes.Structure):
-    _fields_ = [("_limbs", ctypes.c_uint32 * LIMBS)]
-
-
-class EC_point(ctypes.Structure):
-    _fields_ = [
-        ("x", cgbn_mem_t),
-        ("y", cgbn_mem_t),
-        ("seed", cgbn_mem_t),
-        ("is_distinguish", ctypes.c_uint32),
-    ]
-
-
-class PCMP_point(ctypes.Structure):
-    _fields_ = [("x", cgbn_mem_t), ("y", cgbn_mem_t)]
-
-
-class EC_parameters(ctypes.Structure):
-    _fields_ = [
-        ("Pmod", cgbn_mem_t),
-        ("a", cgbn_mem_t),
-        ("zeros_count", ctypes.c_uint32),
-    ]
-
-
-def get_lib():
-    path = Path.cwd().parent.parent
-    cuda_rho_pollard = ctypes.CDLL(str(path) + "/build/librho_pollard.so")
-
-    cuda_rho_pollard.run_rho_pollard.argtypes = [
-        ctypes.POINTER(EC_point),
-        ctypes.c_uint32,
-        ctypes.c_uint32,
-        ctypes.POINTER(PCMP_point),
-        ctypes.POINTER(EC_parameters),
-    ]
-
-    return cuda_rho_pollard
+from .elliptic_curve import *
+from .c_api import EC_point, PCMP_point, EC_parameters, get_rho
 
 
 def generate_starting_points(instances, zeros_count):
@@ -70,7 +29,7 @@ def generate_starting_points(instances, zeros_count):
 async def GPUworker(
     zeros_count, instances, n, precomputed_points, queue: asyncio.Queue
 ):
-    cuda_rho_pollard = get_lib()
+    cuda_rho_pollard = get_rho()
 
     while True:
         precomputed_points_size = len(precomputed_points)
