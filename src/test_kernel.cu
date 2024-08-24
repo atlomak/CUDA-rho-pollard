@@ -29,12 +29,17 @@ __global__ void ker_add_points(cgbn_error_report_t *report, EC_point *points, EC
     cgbn_load(bn192_env, params.a, &(parameters->a));
 
     env192_t::cgbn_t approx;
-    uint32_t clz_count = cgbn_barrett_approximation(bn192_env, approx, params.Pmod);
-    params.approx = approx;
-    params.clz_count = clz_count;
-    printf("clz_count: %d\n", clz_count);
+    params.clz_count = cgbn_barrett_approximation(bn192_env, params.approx, params.Pmod);
 
-    add_points(bn192_env, R, P0, P1, params);
+    env192_t::cgbn_t t2;
+    if (cgbn_sub(bn192_env, t2, P1.x, P0.x))
+    {
+        cgbn_add(bn192_env, t2, P0.x, params.Pmod);
+    }
+
+    cgbn_modular_inverse(bn192_env, t2, t2, params.Pmod);
+
+    add_points(bn192_env, R, P0, P1, params, t2);
 
     cgbn_store(bn192_env, &(points[points_index].x), R.x);
     cgbn_store(bn192_env, &(points[points_index].y), R.y);
