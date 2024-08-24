@@ -1,6 +1,6 @@
 import ctypes
 
-from src.python.c_api import *
+from src.python.c_api import EC_point, get_test_kernel
 from src.python.utils import num_to_limbs
 from src.python.elliptic_curve import P, Q
 
