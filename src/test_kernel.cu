@@ -32,9 +32,9 @@ __global__ void ker_add_points(cgbn_error_report_t *report, EC_point *points, EC
     params.clz_count = cgbn_barrett_approximation(bn192_env, params.approx, params.Pmod);
 
     env192_t::cgbn_t t2;
-    if (cgbn_sub(bn192_env, t2, P1.x, P0.x))
+    if (cgbn_sub(bn192_env, t2, P0.x, P1.x))
     {
-        cgbn_add(bn192_env, t2, P0.x, params.Pmod);
+        cgbn_add(bn192_env, t2, t2, params.Pmod);
     }
 
     cgbn_modular_inverse(bn192_env, t2, t2, params.Pmod);
@@ -63,7 +63,7 @@ void test_adding_points(EC_point *points, int32_t instances, EC_parameters *para
     cudaCheckError(cgbn_error_report_alloc(&report));
 
     // 16 instances per block, instance = 4 threads
-    ker_add_points<<<(instances + 31) / 32, 128>>>(report, gpuPoints, gpuParameters, instances);
+    ker_add_points<<<(instances + 3) / 4, 128>>>(report, gpuPoints, gpuParameters, instances);
 
     cudaCheckError(cudaDeviceSynchronize());
 

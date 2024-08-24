@@ -43,3 +43,16 @@ def get_rho():
     ]
 
     return cuda_rho_pollard
+
+
+def get_test_kernel():
+    path = Path.cwd()
+    cuda_test_kernel = ctypes.CDLL(str(path) + "/build/libtest_kernel.so")
+
+    cuda_test_kernel.test_adding_points.argtypes = [
+        ctypes.POINTER(EC_point),
+        ctypes.c_size_t,
+        ctypes.POINTER(EC_parameters),
+    ]
+
+    return cuda_test_kernel

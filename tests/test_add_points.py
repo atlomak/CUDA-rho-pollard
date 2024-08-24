@@ -1,6 +1,8 @@
 import ctypes
 
-from settings import *
+from src.python.c_api import *
+from src.python.utils import num_to_limbs
+from src.python.elliptic_curve import P, Q
 
 
 def test_add_points_debug(parameters):
@@ -17,6 +19,7 @@ def test_add_points_debug(parameters):
     points[1].x._limbs[:] = num_to_limbs(B[0])
     points[1].y._limbs[:] = num_to_limbs(B[1])
 
+    cuda_test_kernel = get_test_kernel()
     cuda_test_kernel.test_adding_points(points, 1, ctypes.byref(parameters))
 
     expected_x = num_to_limbs(R[0])
@@ -43,6 +46,7 @@ def test_add_points_2(parameters):
     points[1].x._limbs[:] = num_to_limbs(B[0])
     points[1].y._limbs[:] = num_to_limbs(B[1])
 
+    cuda_test_kernel = get_test_kernel()
     cuda_test_kernel.test_adding_points(points, 1, ctypes.byref(parameters))
 
     expected_x = num_to_limbs(R[0])
@@ -69,6 +73,7 @@ def test_add_points_3(parameters):
     points[1].x._limbs[:] = num_to_limbs(B[0])
     points[1].y._limbs[:] = num_to_limbs(B[1])
 
+    cuda_test_kernel = get_test_kernel()
     cuda_test_kernel.test_adding_points(points, 1, ctypes.byref(parameters))
 
     expected_x = num_to_limbs(R[0])
@@ -95,6 +100,7 @@ def test_add_points_4(parameters):
     points[1].x._limbs[:] = num_to_limbs(B[0])
     points[1].y._limbs[:] = num_to_limbs(B[1])
 
+    cuda_test_kernel = get_test_kernel()
     cuda_test_kernel.test_adding_points(points, 1, ctypes.byref(parameters))
 
     expected_x = num_to_limbs(R[0])

@@ -1,6 +1,9 @@
 import ctypes
 
-from settings import *
+from src.python.c_api import *
+from src.python.utils import num_to_limbs
+from src.python.elliptic_curve import P, Q
+import pytest
 
 INSTANCES = 2000
 STARTING_POINTS = INSTANCES * 2
@@ -37,6 +40,7 @@ def test_add_points_batch_1(parameters, generate_points):
         points[i].x._limbs[:] = num_to_limbs(point[0])
         points[i].y._limbs[:] = num_to_limbs(point[1])
 
+    cuda_test_kernel = get_test_kernel()
     cuda_test_kernel.test_adding_points(points, INSTANCES, ctypes.byref(parameters))
 
     for i in range(INSTANCES):

@@ -1,71 +1,57 @@
 import ctypes
-from settings import *
+import pytest
+from src.python.c_api import *
+from src.python.utils import num_to_limbs, limbs_to_num
+from src.python.elliptic_curve import P, Q
+from src.python.gpu_worker import generate_starting_points
+from main import generate_precomputed_points, map_to_index, is_distinguish
 
 LEADING_ZEROS = 10
-PRECOMPUTED_POINTS = 2048
-INSTANCES = 5120
+PRECOMPUTED_POINTS = 850
+N = 20
+INSTANCES = 960
 
 
-def generate_precomputed_points():
-    points = []
-    for i in range(PRECOMPUTED_POINTS):
-        A = P * (i + 1)
-        B = Q
-        R = A + B
-        points.append(R)
-    return points
-
-
-def generate_starting_points():
-    points = []
-    for i in range(INSTANCES):
-        A = P * (i + 1)
-        points.append(A)
-    return points
-
-
-def map_to_index(x):
-    return int(x) & (PRECOMPUTED_POINTS - 1)
-
-
-def is_distinguish(x):
-    mask = 1 << LEADING_ZEROS
-    mask = mask - 1
-    return (int(x) & mask) == 0
-
-
+@pytest.mark.long
 def test_iteration_function(parameters):
-    p_points = (EC_point * INSTANCES)()
-    p_precomputed_points = (EC_point * PRECOMPUTED_POINTS)()
+    p_points = (EC_point * (INSTANCES * N))()
+    p_precomputed_points = (PCMP_point * PRECOMPUTED_POINTS)()
 
-    starting_points = generate_starting_points()
-    precomputed_points = generate_precomputed_points()
+    starting_points, seeds = generate_starting_points(INSTANCES * N, LEADING_ZEROS)
+    precomputed_points = generate_precomputed_points(PRECOMPUTED_POINTS)
 
     parameters.zeros_count = LEADING_ZEROS
 
-    for i in range(INSTANCES):
+    for i in range(INSTANCES * N):
         point = starting_points[i]
+        seed = seeds[i]
 
         p_points[i].x._limbs[:] = num_to_limbs(point[0])
         p_points[i].y._limbs[:] = num_to_limbs(point[1])
+        p_points[i].seed._limbs[:] = num_to_limbs(seed)
+        p_points[i].is_distinguish = 0
 
     for i in range(PRECOMPUTED_POINTS):
-        point = precomputed_points[i]
+        point = precomputed_points[i].point
 
         p_precomputed_points[i].x._limbs[:] = num_to_limbs(point[0])
         p_precomputed_points[i].y._limbs[:] = num_to_limbs(point[1])
 
+    cuda_rho_pollard = get_rho()
     cuda_rho_pollard.run_rho_pollard(
-        p_points, INSTANCES, p_precomputed_points, ctypes.byref(parameters)
+        p_points, INSTANCES, N, p_precomputed_points, ctypes.byref(parameters)
     )
 
-    for n in range(INSTANCES):
-        W = starting_points[n]
+    for n in range(INSTANCES * N):
+        if p_points[n].is_distinguish == 0:
+            continue
+        seed = limbs_to_num(p_points[n].seed._limbs)
+        W = P * seed
         i = 0
-        while not is_distinguish(W[0]):
+        while not is_distinguish(W[0], LEADING_ZEROS):
             precomp_index = map_to_index(W[0])
             R = precomputed_points[precomp_index]
-            W = W + R
+            W = W + R.point
             i = i + 1
 
         expected_x = num_to_limbs(W[0])
