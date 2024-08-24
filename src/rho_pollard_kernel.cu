@@ -2,10 +2,12 @@
 #include <cstdio>
 #include "ec_points_ops.cu"
 
-#define PRECOMPUTED_POINTS 1024
-#define BATCH_SIZE 10
+#define PRECOMPUTED_POINTS 850
+#define BATCH_SIZE 5
 
 __shared__ PCMP_point SMEMprecomputed[PRECOMPUTED_POINTS];
+
+__shared__ int warp_finished;
 
 __device__ uint32_t is_distinguish(env192_t &bn_env, env192_t::cgbn_t &x, uint32_t zeros_count) { return (cgbn_ctz(bn_env, x) >= zeros_count); }
 
@@ -23,9 +25,10 @@ typedef struct
     EC_parameters *parameters;
     uint32_t instances;
     uint32_t n;
+    int stream;
 } rho_pollard_args;
 
-__global__ __launch_bounds__(384, 2) void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args)
+__global__ __launch_bounds__(224, 3) void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args, int stream)
 {
     uint32_t instance;
     uint32_t thread_id;
@@ -46,6 +49,7 @@ __global__ __launch_bounds__(384, 2) void rho_pollard(cgbn_error_report_t *repor
         {
             SMEMprecomputed[i] = args.precomputed[i];
         }
+        warp_finished = 0;
     }
 
     __syncthreads();
@@ -85,13 +89,17 @@ __global__ __launch_bounds__(384, 2) void rho_pollard(cgbn_error_report_t *repor
 
     int counter = 0;
     int found_flags[BATCH_SIZE] = {0};
-    while (counter < args.n)
+    while (counter < args.n && warp_finished == 0)
     {
 
         env192_t::cgbn_t a[BATCH_SIZE];
 
         for (int i = 0; i < BATCH_SIZE; i++)
         {
+            if (found_flags[i] == 1)
+            {
+                continue;
+            }
             env192_t::cgbn_t Px, Rx;
             cgbn_load(bn192_env, Px, &(W[i].x));
 
@@ -109,6 +117,10 @@ __global__ __launch_bounds__(384, 2) void rho_pollard(cgbn_error_report_t *repor
 
         for (int i = 0; i < BATCH_SIZE; i++)
         {
+            if (found_flags[i] == 1)
+            {
+                continue;
+            }
             env192_t::cgbn_wide_t wide;
             cgbn_set(bn192_env, b[i], v);
             cgbn_mul_wide(bn192_env, wide, v, a[i]);
@@ -120,6 +132,10 @@ __global__ __launch_bounds__(384, 2) void rho_pollard(cgbn_error_report_t *repor
 
         for (int i = BATCH_SIZE - 1; i >= 0; i--)
         {
+            if (found_flags[i] == 1)
+            {
+                continue;
+            }
             env192_t::cgbn_wide_t wide;
             cgbn_mul_wide(bn192_env, wide, x, b[i]);
             cgbn_barrett_rem_wide(bn192_env, b[i], wide, params.Pmod, params.approx, params.clz_count);
@@ -155,7 +171,7 @@ __global__ __launch_bounds__(384, 2) void rho_pollard(cgbn_error_report_t *repor
                 counter++;
                 if (thread_id % TPI == 0)
                 {
-                    printf("counter %d ,Instance %d found distinguish point!\n", counter, instance);
+                    printf("STREAM: %d, counter %d ,Instance %d found distinguish point!\n", stream, counter, instance);
                 }
                 found_flags[i] = 1;
                 if (read_offset < args.n)
@@ -174,6 +190,7 @@ __global__ __launch_bounds__(384, 2) void rho_pollard(cgbn_error_report_t *repor
             }
         }
     }
+    warp_finished = 1;
 }
 
 extern "C" {
