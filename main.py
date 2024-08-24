@@ -5,7 +5,7 @@ from src.python.utils import is_distinguish
 import time
 
 from src.python.elliptic_curve import E, P, Q, curve_order
-from src.python.gpu_worker import GPUworker
+from src.python.gpu_worker import GPUworker, Point
 
 PRECOMPUTED_POINTS = 850
 INSTANCES = 960
@@ -25,11 +25,11 @@ def generate_precomputed_points(precomputed_points_size) -> list[PrecomputedPoin
     m = md5()
     m.update(str(time.time()).encode("utf-8"))
     for i in range(precomputed_points_size):
-        a = int.from_bytes(m.digest())
+        a = int.from_bytes(m.digest()) % curve_order
         A = P * a
         m.update(b"1")
 
-        b = int.from_bytes(m.digest())
+        b = int.from_bytes(m.digest()) % curve_order
         B = Q * b
         m.update(b"1")
 
@@ -46,8 +46,8 @@ def is_collision(point: tuple[int, int], seed, distinguish_points: dict):
 
 
 # Iteration function
-def map_to_index(x):
-    return int(x) & (PRECOMPUTED_POINTS - 1)
+def map_to_index(x, precomputed_points=PRECOMPUTED_POINTS):
+    return int(x) & (precomputed_points - 1)
 
 
 def calculate_ab(seed, precomputed_points: list[PrecomputedPoint]):
@@ -88,24 +88,24 @@ async def main():
 
     queue = asyncio.Queue()
 
-    gpu_worker = asyncio.create_task(
-        GPUworker(ZEROS_COUNT, INSTANCES, N, precomputed_points_worker, queue)
-    )
+    gpu_worker = asyncio.create_task(GPUworker(ZEROS_COUNT, INSTANCES, N, precomputed_points_worker, queue))
 
     distinguish_points = {}
     while len(distinguish_points) < 1:
-        points, seeds = await queue.get()
+        points: list[Point] = await queue.get()
 
         print("Got new distinguish points")
         print(f"Currently have {len(distinguish_points)}")
 
-        for i in range(len(points)):
-            assert is_distinguish(points[i][0], ZEROS_COUNT)
-            point = E(points[i][0], points[i][1])
+        for result_point in points:
+            point = result_point.point
+            seed = result_point.seed
 
-            point = points[i]
-            seed = seeds[i]
-            if is_collision(point, seed, distinguish_points):
+            xy = (int(point[0]), int(point[1]))
+
+            assert is_distinguish(point[0], ZEROS_COUNT)
+
+            if is_collision(xy, seed, distinguish_points):
                 print("Collision!")
 
                 print(E(point[0], point[1]))
@@ -121,7 +121,7 @@ async def main():
                     break
 
             else:
-                distinguish_points[(point[0], point[1])] = seed
+                distinguish_points[xy] = seed
         else:
             print(f"Got {len(distinguish_points)} points")
             continue
