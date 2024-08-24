@@ -28,7 +28,7 @@ typedef struct
     int stream;
 } rho_pollard_args;
 
-__global__ __launch_bounds__(224, 3) void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args, int stream)
+__global__ __launch_bounds__(256, 3) void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args, int stream)
 {
     uint32_t instance;
     uint32_t thread_id;
@@ -168,6 +168,8 @@ __global__ __launch_bounds__(224, 3) void rho_pollard(cgbn_error_report_t *repor
                 cgbn_store(bn192_env, &(args.starting[instance * args.n + counter].x), P.x);
                 cgbn_store(bn192_env, &(args.starting[instance * args.n + counter].y), P.y);
                 cgbn_store(bn192_env, &(args.starting[instance * args.n + counter].seed), P.seed);
+                args.starting[instance * args.n + counter].is_distinguish = 1;
+
                 counter++;
                 if (thread_id % TPI == 0)
                 {
@@ -258,7 +260,7 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, PCMP
     printf("Max potential block size: %d\n", blockSize);
 
     // 512 threads per block (128 CGBN instances)
-    rho_pollard<<<(instances + 11) / 12, 384>>>(report, args);
+    rho_pollard<<<(instances + 7) / 8, 256>>>(report, args, 0);
 
     cudaDeviceSynchronize();
     cudaCheckErrors("Kernel failed");

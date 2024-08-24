@@ -84,6 +84,7 @@ typedef struct
     cgbn_mem_t<BITS> x;
     cgbn_mem_t<BITS> y;
     cgbn_mem_t<BITS> seed;
+    uint32_t is_distinguish;
 } EC_point;
 
 // precomputed EC_point without seed to preserve memory

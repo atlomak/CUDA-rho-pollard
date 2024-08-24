@@ -15,7 +15,12 @@ class cgbn_mem_t(ctypes.Structure):
 
 
 class EC_point(ctypes.Structure):
-    _fields_ = [("x", cgbn_mem_t), ("y", cgbn_mem_t), ("seed", cgbn_mem_t)]
+    _fields_ = [
+        ("x", cgbn_mem_t),
+        ("y", cgbn_mem_t),
+        ("seed", cgbn_mem_t),
+        ("is_distinguish", ctypes.c_uint32),
+    ]
 
 
 class PCMP_point(ctypes.Structure):
@@ -86,6 +91,7 @@ async def GPUworker(
             p_points[i].x._limbs[:] = num_to_limbs(point[0])
             p_points[i].y._limbs[:] = num_to_limbs(point[1])
             p_points[i].seed._limbs[:] = num_to_limbs(seed)
+            p_points[i].is_distinguish = 0
 
         for i in range(precomputed_points_size):
             point = precomputed_points[i]
@@ -105,6 +111,8 @@ async def GPUworker(
         result_points = []
         result_seeds = []
         for i in range(instances * n):
+            if p_points[i].is_distinguish == 0:
+                continue
             result_x = limbs_to_num(p_points[i].x._limbs)
             result_y = limbs_to_num(p_points[i].y._limbs)
             seed = limbs_to_num(p_points[i].seed._limbs)
