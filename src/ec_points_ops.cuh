@@ -83,14 +83,12 @@ typedef struct
 {
     cgbn_mem_t<BITS> x;
     cgbn_mem_t<BITS> y;
-    cgbn_mem_t<BITS> seed;
 } EC_point;
 
 typedef struct
 {
     env192_t::cgbn_t x;
     env192_t::cgbn_t y;
-    env192_t::cgbn_t seed;
 } dev_EC_point;
 
 typedef struct

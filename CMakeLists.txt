@@ -9,7 +9,6 @@ add_library(rho_pollard SHARED src/rho_pollard_kernel.cu)
 
 # set_target_properties(main PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
-target_link_libraries(rho_pollard PRIVATE zmq)
 # CGBN
 target_link_libraries(rho_pollard PRIVATE gmp)
 target_include_directories(rho_pollard PRIVATE include/CGBN/include)

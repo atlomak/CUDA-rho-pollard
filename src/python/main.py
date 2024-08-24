@@ -1,24 +1,14 @@
 import asyncio
-from io import BytesIO
-import threading
 from sage.all import inverse_mod
 from hashlib import md5
 import time
 
-import zmq.asyncio
-
 from settings import E, P, Q, curve_order
-from gpu_worker import EC_point, GPUworker, limbs_to_num, num_to_limbs
+from gpu_worker import GPUworker
 
-PRECOMPUTED_POINTS = 1024
+PRECOMPUTED_POINTS = 2048
 INSTANCES = 5120
-ZEROS_COUNT = 17
-
-POINTS_PER_WARP = 8
-
-context = zmq.Context()
-socket = context.socket(zmq.REP)
-socket.bind("tcp://*:5555")
+ZEROS_COUNT = 20
 
 
 class PrecomputedPoint:
@@ -95,78 +85,34 @@ def find_discrete_log(a1, b1, a2, b2):
     return True
 
 
-def generate_starting_points(instances):
-    points = []
-    seeds = []
-    m = md5()
-    m.update(str(time.time()).encode("utf-8"))
-    for i in range(instances):
-        seed = int.from_bytes(m.digest()) % curve_order
-        A = P * seed
-        points.append(A)
-        seeds.append(seed)
-        m.update(b"1")
-    return points, seeds
-
-
-WARP_BATCH = EC_point * POINTS_PER_WARP
-
-
-def main():
+async def main():
     print("Starting...")
     precomputed_points = generate_precomputed_points(PRECOMPUTED_POINTS)
     precomputed_points_worker = [p.point for p in precomputed_points]
 
-    new_starting_points, seeds = generate_starting_points(INSTANCES)
-    threading.Thread(
-        target=GPUworker,
-        args=(
-            ZEROS_COUNT,
-            INSTANCES,
-            precomputed_points_worker,
-            new_starting_points,
-            seeds,
-        ),
-    ).start()
+    queue = asyncio.Queue()
+
+    gpu_worker = asyncio.create_task(
+        GPUworker(ZEROS_COUNT, INSTANCES, precomputed_points_worker, queue)
+    )
 
     distinguish_points = {}
+    while len(distinguish_points) < 20000:
+        points, seeds = await queue.get()
 
-    while len(distinguish_points) < 20480:
-        p_starting_points = (EC_point * POINTS_PER_WARP)()
+        print("Got new distinguish points")
+        print(f"Currently have {len(distinguish_points)}")
 
-        new_starting_points, seeds = generate_starting_points(POINTS_PER_WARP)
-
-        for i in range(POINTS_PER_WARP):
-            point = new_starting_points[i]
-
-            p_starting_points[i].x._limbs[:] = num_to_limbs(point[0])
-            p_starting_points[i].y._limbs[:] = num_to_limbs(point[1])
-            p_starting_points[i].seed._limbs[:] = num_to_limbs(seeds[i])
-
-        print("PYTHON: waiting for new points")
-        incoming_data = socket.recv()
-        batch = WARP_BATCH.from_buffer_copy(incoming_data)
-        print("PYTHON: Got new points")
-
-        socket.send(p_starting_points)
-        print("PYTHON: Sent new points")
-
-        for i in range(POINTS_PER_WARP):
-            x = limbs_to_num(batch[i].x._limbs)
-            y = limbs_to_num(batch[i].y._limbs)
-            seed = limbs_to_num(batch[i].seed._limbs)
-
-            print(f"{E(x, y)} seed: {seed}")
-
-            point = (x, y)
-
+        for i in range(len(points)):
+            point = points[i]
+            seed = seeds[i]
             if is_collision(point, seed, distinguish_points):
                 print("Collision!")
 
                 print(E(point[0], point[1]))
                 print(f"Seed 1: {seed}")
 
-                seed_from_dict = distinguish_points[point]
+                seed_from_dict = distinguish_points[(point[0], point[1])]
                 print(f"Seed 2: {seed_from_dict}")
 
                 a1, b1 = calculate_ab(seed, precomputed_points)
@@ -176,15 +122,15 @@ def main():
                     break
 
             else:
-                distinguish_points[point] = seed
+                distinguish_points[(point[0], point[1])] = seed
         else:
             continue
         break
 
-        print(f"Got {len(distinguish_points)} points")
-
+    gpu_worker.cancel()
+    await asyncio.gather(gpu_worker, return_exceptions=True)
     print(f"Got {len(distinguish_points)} points")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
