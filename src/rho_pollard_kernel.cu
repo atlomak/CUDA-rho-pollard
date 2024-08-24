@@ -3,7 +3,7 @@
 #include "ec_points_ops.cu"
 
 #define PRECOMPUTED_POINTS 850
-#define BATCH_SIZE 5
+#define BATCH_SIZE 10
 
 __shared__ PCMP_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
@@ -147,23 +147,24 @@ __global__ __launch_bounds__(256, 3) void rho_pollard(cgbn_error_report_t *repor
         for (int i = 0; i < BATCH_SIZE; i++)
         {
             dev_EC_point R, P;
-            if (found_flags[i] != 1)
+            if (found_flags[i] == 1)
             {
-                cgbn_load(bn192_env, P.x, &(W[i].x));
-                cgbn_load(bn192_env, P.y, &(W[i].y));
-                cgbn_load(bn192_env, P.seed, &(W[i].seed));
-
-                uint32_t precom_index = map_to_index(bn192_env, P.x, mask);
-                cgbn_load(bn192_env, R.x, &(SMEMprecomputed[precom_index].x));
-                cgbn_load(bn192_env, R.y, &(SMEMprecomputed[precom_index].y));
-                add_points(bn192_env, P, P, R, params, b[i]);
-
-                cgbn_store(bn192_env, &W[i].x, P.x);
-                cgbn_store(bn192_env, &W[i].y, P.y);
-                cgbn_store(bn192_env, &W[i].seed, P.seed);
+                continue;
             }
+            cgbn_load(bn192_env, P.x, &(W[i].x));
+            cgbn_load(bn192_env, P.y, &(W[i].y));
+            cgbn_load(bn192_env, P.seed, &(W[i].seed));
 
-            if (found_flags[i] != 1 && is_distinguish(bn192_env, P.x, args.parameters->zeros_count))
+            uint32_t precom_index = map_to_index(bn192_env, P.x, mask);
+            cgbn_load(bn192_env, R.x, &(SMEMprecomputed[precom_index].x));
+            cgbn_load(bn192_env, R.y, &(SMEMprecomputed[precom_index].y));
+            add_points(bn192_env, P, P, R, params, b[i]);
+
+            cgbn_store(bn192_env, &W[i].x, P.x);
+            cgbn_store(bn192_env, &W[i].y, P.y);
+            cgbn_store(bn192_env, &W[i].seed, P.seed);
+
+            if (is_distinguish(bn192_env, P.x, args.parameters->zeros_count))
             {
                 cgbn_store(bn192_env, &(args.starting[instance * args.n + counter].x), P.x);
                 cgbn_store(bn192_env, &(args.starting[instance * args.n + counter].y), P.y);
