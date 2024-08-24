@@ -7,9 +7,9 @@ import time
 from src.python.elliptic_curve import E, P, Q, curve_order
 from src.python.gpu_worker import GPUworker
 
-PRECOMPUTED_POINTS = 1024
-INSTANCES = 1280
-N = 160
+PRECOMPUTED_POINTS = 850
+INSTANCES = 960
+N = 50
 ZEROS_COUNT = 15
 
 
