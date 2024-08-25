@@ -40,6 +40,7 @@ def get_rho():
         ctypes.c_uint32,
         ctypes.POINTER(PCMP_point),
         ctypes.POINTER(EC_parameters),
+        ctypes.c_uint32,
     ]
 
     return cuda_rho_pollard

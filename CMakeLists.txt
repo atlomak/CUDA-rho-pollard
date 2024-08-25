@@ -7,6 +7,8 @@ set(CMAKE_CUDA_ARCHITECTURES 75)
 
 add_library(rho_pollard SHARED src/rho_pollard_kernel.cu)
 
+target_compile_options(rho_pollard PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: --default-stream per-thread>)
+
 # set_target_properties(main PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 # CGBN

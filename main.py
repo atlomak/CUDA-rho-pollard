@@ -1,16 +1,17 @@
-import asyncio
 from sage.all import inverse_mod
 from hashlib import md5
 from src.python.utils import is_distinguish
+from queue import Queue
+from threading import Thread
 import time
 
-from src.python.elliptic_curve import E, P, Q, curve_order
-from src.python.gpu_worker import GPUworker, Point
+from src.python.elliptic_curve import E, P, Q, curve_order, field_order
+from src.python.gpu_worker import GPUworker, StartingParameters
 
 PRECOMPUTED_POINTS = 850
 INSTANCES = 960
 N = 50
-ZEROS_COUNT = 15
+ZEROS_COUNT = 21
 
 
 class PrecomputedPoint:
@@ -18,6 +19,26 @@ class PrecomputedPoint:
         self.point = point
         self.a = a
         self.b = b
+
+
+def generate_starting_points(instances, zeros_count):
+    distnguish_points = []
+    starting_points = []
+    m = md5()
+    m.update(str(time.time()).encode("utf-8"))
+    i = 0
+    while i < instances:
+        seed = int.from_bytes(m.digest()) % field_order
+        A = P * seed
+        x = int(A[0])
+        y = int(A[1])
+        if not is_distinguish(x, zeros_count):
+            i += 1
+            starting_points.append((x, y, seed))
+        else:
+            distnguish_points.append((x, y, seed))
+        m.update(b"1")
+    return starting_points, distnguish_points
 
 
 def generate_precomputed_points(precomputed_points_size) -> list[PrecomputedPoint]:
@@ -81,27 +102,49 @@ def find_discrete_log(a1, b1, a2, b2):
     return True
 
 
-async def main():
+task_queue = Queue()
+result_queue = Queue()
+
+
+def main():
     print("Starting...")
     precomputed_points = generate_precomputed_points(PRECOMPUTED_POINTS)
     precomputed_points_worker = [p.point for p in precomputed_points]
 
-    queue = asyncio.Queue()
+    params = StartingParameters(ZEROS_COUNT, INSTANCES, N, precomputed_points_worker, field_order, curve_order)
 
-    gpu_worker = asyncio.create_task(GPUworker(ZEROS_COUNT, INSTANCES, N, precomputed_points_worker, queue))
+    gpu_worker1 = Thread(target=GPUworker, args=(params, task_queue, result_queue, 1))
+    gpu_worker2 = Thread(target=GPUworker, args=(params, task_queue, result_queue, 2))
+
+    gpu_worker1.start()
+    gpu_worker2.start()
+
+    print("Workers started")
 
     distinguish_points = {}
+
+    starting_points, _ = generate_starting_points(INSTANCES * N, ZEROS_COUNT)
+    print("Sent starting points")
+    task_queue.put(starting_points)
+    print("Sent starting points")
+
+    starting_points, _ = generate_starting_points(INSTANCES * N, ZEROS_COUNT)
+    task_queue.put(starting_points)
+    print("Sent starting points")
+
     while len(distinguish_points) < 1:
-        points: list[Point] = await queue.get()
+        points = result_queue.get()
+
+        starting_points, cpu_found_points = generate_starting_points(INSTANCES * N, ZEROS_COUNT)
+
+        points.extend(cpu_found_points)
 
         print("Got new distinguish points")
         print(f"Currently have {len(distinguish_points)}")
 
-        for result_point in points:
-            point = result_point.point
-            seed = result_point.seed
-
-            xy = (int(point[0]), int(point[1]))
+        for point in points:
+            xy = (point[0], point[1])
+            seed = point[2]
 
             assert is_distinguish(point[0], ZEROS_COUNT)
 
@@ -124,13 +167,17 @@ async def main():
                 distinguish_points[xy] = seed
         else:
             print(f"Got {len(distinguish_points)} points")
+            task_queue.put(starting_points)
             continue
         break
 
-    gpu_worker.cancel()
-    await asyncio.gather(gpu_worker, return_exceptions=True)
+    task_queue.put(None)
+    task_queue.put(None)
+
+    gpu_worker1.join()
+    gpu_worker2.join()
     print(f"Got {len(distinguish_points)} points")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

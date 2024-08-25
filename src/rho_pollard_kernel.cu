@@ -28,7 +28,7 @@ typedef struct
     int stream;
 } rho_pollard_args;
 
-__global__ __launch_bounds__(256, 3) void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args, int stream)
+__global__ __launch_bounds__(256, 3) void rho_pollard(cgbn_error_report_t *report, rho_pollard_args args, uint32_t stream)
 {
     uint32_t instance;
     uint32_t thread_id;
@@ -44,7 +44,7 @@ __global__ __launch_bounds__(256, 3) void rho_pollard(cgbn_error_report_t *repor
 
     if (threadIdx.x == 0)
     {
-        printf("block: %d\n", blockIdx.x);
+        printf("STREAM %d, block: %d\n", stream, blockIdx.x);
         for (int i = 0; i < PRECOMPUTED_POINTS; i++)
         {
             SMEMprecomputed[i] = args.precomputed[i];
@@ -54,7 +54,7 @@ __global__ __launch_bounds__(256, 3) void rho_pollard(cgbn_error_report_t *repor
 
     __syncthreads();
 
-    context_t bn_context(cgbn_report_monitor, report, instance); // construct a context
+    context_t bn_context(cgbn_no_checks, report, instance); // construct a context
     env192_t bn192_env(bn_context.env<env192_t>());
 
     dev_Parameters params;
@@ -172,10 +172,10 @@ __global__ __launch_bounds__(256, 3) void rho_pollard(cgbn_error_report_t *repor
                 args.starting[instance * args.n + counter].is_distinguish = 1;
 
                 counter++;
-                if (thread_id % TPI == 0)
-                {
-                    printf("STREAM: %d, counter %d ,Instance %d found distinguish point!\n", stream, counter, instance);
-                }
+                // if (thread_id % TPI == 0)
+                // {
+                //     printf("STREAM: %d, counter %d ,Instance %d found distinguish point!\n", stream, counter, instance);
+                // }
                 found_flags[i] = 1;
                 if (read_offset < args.n)
                 {
@@ -197,7 +197,7 @@ __global__ __launch_bounds__(256, 3) void rho_pollard(cgbn_error_report_t *repor
 }
 
 extern "C" {
-void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, PCMP_point *precomputed_points, EC_parameters *parameters)
+void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, PCMP_point *precomputed_points, EC_parameters *parameters, int stream)
 {
     printf("Starting rho pollard: zeroes count %d", parameters->zeros_count);
     EC_point *gpu_starting;
@@ -208,22 +208,22 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, PCMP
     cudaSetDevice(0);
     cudaCheckErrors("Failed to set device");
 
-    cudaMallocHost((void **)&gpu_starting, sizeof(EC_point) * instances * n);
+    cudaMalloc((void **)&gpu_starting, sizeof(EC_point) * instances * n);
     cudaCheckErrors("Failed to allocate memory for starting points");
 
-    cudaMemcpy(gpu_starting, startingPts, sizeof(EC_point) * instances * n, cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(gpu_starting, startingPts, sizeof(EC_point) * instances * n, cudaMemcpyHostToDevice);
     cudaCheckErrors("Failed to copy starting points to device");
 
     cudaMalloc((void **)&gpu_precomputed, sizeof(PCMP_point) * PRECOMPUTED_POINTS);
     cudaCheckErrors("Failed to allocate memory for precomputed points");
 
-    cudaMemcpy(gpu_precomputed, precomputed_points, sizeof(PCMP_point) * PRECOMPUTED_POINTS, cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(gpu_precomputed, precomputed_points, sizeof(PCMP_point) * PRECOMPUTED_POINTS, cudaMemcpyHostToDevice);
     cudaCheckErrors("Failed to copy precomputed points to device");
 
     cudaMalloc((void **)&gpu_params, sizeof(EC_parameters));
     cudaCheckErrors("Failed to allocate memory for parameters");
 
-    cudaMemcpy(gpu_params, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(gpu_params, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice);
     cudaCheckErrors("Failed to copy parameters to device");
 
     rho_pollard_args args;
@@ -233,55 +233,30 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, PCMP
     args.instances = instances;
     args.n = n;
 
-    cgbn_error_report_alloc(&report);
     cudaCheckErrors("Failed to allocate memory for error report");
 
-    int numBlocks; // Occupancy in terms of active blocks
-    int blockSize = 512;
-
-    // These variables are used to convert occupancy to warps
-    int device;
-    cudaDeviceProp prop;
-    int activeWarps;
-    int maxWarps;
-
-    cudaGetDevice(&device);
-    cudaGetDeviceProperties(&prop, device);
-
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocks, rho_pollard, blockSize, 0);
-
-    activeWarps = numBlocks * blockSize / prop.warpSize;
-    maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
-
-    printf("Active warps: %d\n", activeWarps);
-    printf("Occupancy: %f\n", (double)activeWarps / maxWarps);
-
-    cudaOccupancyMaxPotentialBlockSize(&numBlocks, &blockSize, rho_pollard, 0, 0);
-
-    printf("Max potential block size: %d\n", blockSize);
-
     // 512 threads per block (128 CGBN instances)
-    rho_pollard<<<(instances + 7) / 8, 256>>>(report, args, 0);
+    rho_pollard<<<(instances + 7) / 8, 256>>>(report, args, stream);
 
-    cudaDeviceSynchronize();
-    cudaCheckErrors("Kernel failed");
+    printf("Launched rho pollard stream %d\n", stream);
+    cudaStreamSynchronize(0);
 
-    CGBN_CHECK(report);
-
-
-    cudaMemcpy(startingPts, gpu_starting, sizeof(EC_point) * instances * n, cudaMemcpyDeviceToHost);
+    printf("Synchronized rho pollard stream %d\n", stream);
+    cudaMemcpyAsync(startingPts, gpu_starting, sizeof(EC_point) * instances * n, cudaMemcpyDeviceToHost);
     cudaCheckErrors("Failed to copy starting points to host");
 
-    cudaFreeHost(gpu_starting);
+    printf("Copied starting points stream %d\n", stream);
+    cudaFreeAsync(gpu_starting, 0);
     cudaCheckErrors("Failed to free memory for starting points");
 
-    cudaFree(gpu_precomputed);
+    printf("Freed memory for starting points stream %d\n", stream);
+    cudaFreeAsync(gpu_precomputed, 0);
     cudaCheckErrors("Failed to free memory for precomputed points");
 
-    cudaFree(gpu_params);
+    printf("Freed memory for precomputed points stream %d\n", stream);
+    cudaFreeAsync(gpu_params, 0);
     cudaCheckErrors("Failed to free memory for parameters");
 
-    cgbn_error_report_free(report);
-    cudaCheckErrors("Failed to free memory for error report");
+    printf("Finished rho pollard stream %d\n", stream);
 }
 }
