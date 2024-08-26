@@ -3,8 +3,7 @@ import pytest
 from src.python.c_api import EC_point, PCMP_point, get_rho
 from src.python.utils import num_to_limbs, limbs_to_num
 from src.python.elliptic_curve import P, Q
-from src.python.gpu_worker import generate_starting_points, Point
-from main import generate_precomputed_points, map_to_index, is_distinguish
+from main import generate_precomputed_points, map_to_index, is_distinguish, generate_starting_points
 
 LEADING_ZEROS = 10
 PRECOMPUTED_POINTS = 850
