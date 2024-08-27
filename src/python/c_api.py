@@ -2,30 +2,30 @@ import ctypes
 from pathlib import Path
 
 # currently 96 bits as 3 * 32 unsigned int
-LIMBS = 3
+LIMBS = 5
 
 
-class cgbn_mem_t(ctypes.Structure):
-    _fields_ = [("_limbs", ctypes.c_uint32 * LIMBS)]
+class bn(ctypes.Structure):
+    _fields_ = [("array", ctypes.c_uint32 * LIMBS)]
 
 
 class EC_point(ctypes.Structure):
     _fields_ = [
-        ("x", cgbn_mem_t),
-        ("y", cgbn_mem_t),
-        ("seed", cgbn_mem_t),
+        ("x", bn),
+        ("y", bn),
+        ("seed", bn),
         ("is_distinguish", ctypes.c_uint32),
     ]
 
 
 class PCMP_point(ctypes.Structure):
-    _fields_ = [("x", cgbn_mem_t), ("y", cgbn_mem_t)]
+    _fields_ = [("x", bn), ("y", bn)]
 
 
 class EC_parameters(ctypes.Structure):
     _fields_ = [
-        ("Pmod", cgbn_mem_t),
-        ("a", cgbn_mem_t),
+        ("Pmod", bn),
+        ("A", bn),
         ("zeros_count", ctypes.c_uint32),
     ]
 

@@ -1,4 +1,4 @@
-def num_to_limbs(number, limbs=3):
+def num_to_limbs(number, limbs=5):
     number = int(number)
     result = []
     mask = (1 << 32) - 1

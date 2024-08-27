@@ -19,12 +19,16 @@ target_include_directories(rho_pollard PRIVATE include/CGBN/include)
 add_library(test_kernel
         SHARED
         src/test_kernel.cu
+        src/bignum.cu
+        src/bignum.cuh
+        src/bn_ec_point_ops.cu
+        src/bn_ec_point_ops.cuh
 )
 
 target_link_libraries(test_kernel PRIVATE gmp)
 target_include_directories(test_kernel PRIVATE include/CGBN/include)
 
-set_target_properties(test_kernel PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+# set_target_properties(test_kernel PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 set_target_properties(test_kernel PROPERTIES LINKER_LANGUAGE CUDA)
 
 target_compile_definitions(test_kernel PRIVATE UNIT_TESTING)

@@ -1,78 +1,122 @@
-#include "../src/ec_points_ops.cu"
+#include "bignum.cuh"
+#include "bn_ec_point_ops.cuh"
 
-__global__ void ker_add_points(cgbn_error_report_t *report, EC_point *points, EC_parameters *parameters, int32_t instances)
+__global__ __launch_bounds__(400, 2) void ker_add_points(EC_parameters *parameters, int32_t instances, EC_point *points)
 {
-    int32_t instance;
-    int32_t points_index;
-
-    instance = (blockIdx.x * blockDim.x + threadIdx.x) / TPI;
-    points_index = instance * 2;
-
-    if (instance >= instances)
+    int32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= instances)
     {
         return;
     }
 
-    context_t bn_context(cgbn_report_monitor, report, instance); // construct a context
-    env192_t bn192_env(bn_context.env<env192_t>());
+    EC_point a, b, c;
+    bn Pmod;
 
-    dev_EC_point P0, P1, R;
-    dev_Parameters params;
+    bignum_init(&a.x);
+    bignum_init(&a.y);
 
-    cgbn_load(bn192_env, P0.x, &(points[points_index].x));
-    cgbn_load(bn192_env, P0.y, &(points[points_index].y));
+    bignum_init(&b.x);
+    bignum_init(&b.y);
 
-    cgbn_load(bn192_env, P1.x, &(points[points_index + 1].x));
-    cgbn_load(bn192_env, P1.y, &(points[points_index + 1].y));
+    bignum_init(&c.x);
+    bignum_init(&c.y);
 
-    cgbn_load(bn192_env, params.Pmod, &(parameters->Pmod));
-    cgbn_load(bn192_env, params.a, &(parameters->a));
+    bignum_init(&Pmod);
 
-    env192_t::cgbn_t approx;
-    params.clz_count = cgbn_barrett_approximation(bn192_env, params.approx, params.Pmod);
+    bignum_assign(&Pmod, &parameters->Pmod);
+    bignum_assign(&a.x, &points[idx * 2].x);
+    bignum_assign(&a.y, &points[idx * 2].y);
 
-    env192_t::cgbn_t t2;
-    if (cgbn_sub(bn192_env, t2, P0.x, P1.x))
-    {
-        cgbn_add(bn192_env, t2, t2, params.Pmod);
-    }
+    bignum_assign(&b.x, &points[idx * 2 + 1].x);
+    bignum_assign(&b.y, &points[idx * 2 + 1].y);
 
-    cgbn_modular_inverse(bn192_env, t2, t2, params.Pmod);
+    // for (int i = 0; i < 1000; i++)
+    // {
+        add_points(&a, &b, &c, &Pmod);
+    // }
 
-    add_points(bn192_env, R, P0, P1, params, t2);
-
-    cgbn_store(bn192_env, &(points[points_index].x), R.x);
-    cgbn_store(bn192_env, &(points[points_index].y), R.y);
+    bignum_assign(&points[idx * 2].x, &c.x);
+    bignum_assign(&points[idx * 2].y, &c.y);
 }
 
 extern "C" {
 void test_adding_points(EC_point *points, int32_t instances, EC_parameters *parameters)
 {
-    EC_point *gpuPoints;
-    EC_parameters *gpuParameters;
-    cgbn_error_report_t *report;
+    EC_point *gpuPoints = nullptr;
+    EC_parameters *gpuParameters = nullptr;
 
-    cudaCheckError(cudaSetDevice(0));
+    cudaError_t err;
 
-    cudaCheckError(cudaMalloc((void **)&gpuPoints, sizeof(EC_point) * instances * 2));
-    cudaCheckError(cudaMemcpy(gpuPoints, points, sizeof(EC_point) * instances * 2, cudaMemcpyHostToDevice));
+    err = cudaMalloc(&gpuPoints, instances * 2 * sizeof(EC_point));
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to allocate device memory for points (error code %s)!\n", cudaGetErrorString(err));
+        return;
+    }
 
-    cudaCheckError(cudaMalloc((void **)&gpuParameters, sizeof(EC_parameters)));
-    cudaCheckError(cudaMemcpy(gpuParameters, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice));
+    err = cudaMalloc(&gpuParameters, sizeof(EC_parameters));
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to allocate device memory for parameters (error code %s)!\n", cudaGetErrorString(err));
+        cudaFree(gpuPoints);
+        return;
+    }
 
-    cudaCheckError(cgbn_error_report_alloc(&report));
+    err = cudaMemcpy(gpuPoints, points, instances * 2 * sizeof(EC_point), cudaMemcpyHostToDevice);
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to copy points from host to device (error code %s)!\n", cudaGetErrorString(err));
+        cudaFree(gpuPoints);
+        cudaFree(gpuParameters);
+        return;
+    }
 
+    err = cudaMemcpy(gpuParameters, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice);
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to copy parameters from host to device (error code %s)!\n", cudaGetErrorString(err));
+        cudaFree(gpuPoints);
+        cudaFree(gpuParameters);
+        return;
+    }
+
+    cudaEvent_t start, stop;
+
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaEventRecord(start);
     // 16 instances per block, instance = 4 threads
-    ker_add_points<<<(instances + 3) / 4, 128>>>(report, gpuPoints, gpuParameters, instances);
+    ker_add_points<<<(instances + 511) / 512, 512>>>(gpuParameters, instances, gpuPoints);
 
-    cudaCheckError(cudaDeviceSynchronize());
+    cudaEventRecord(stop);
 
-    CGBN_CHECK(report);
+    cudaEventSynchronize(stop);
 
-    cudaCheckError(cudaMemcpy(points, gpuPoints, sizeof(EC_point) * instances * 2, cudaMemcpyDeviceToHost));
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
 
-    cudaCheckError(cudaFree(gpuPoints));
-    cudaCheckError(cudaFree(gpuParameters));
-    cudaCheckError(cgbn_error_report_free(report));
+    printf("Elapsed time: %3.1f\n", milliseconds);
+
+    err = cudaGetLastError();
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to launch ker_add_points kernel (error code %s)!\n", cudaGetErrorString(err));
+        cudaFree(gpuPoints);
+        cudaFree(gpuParameters);
+        return;
+    }
+
+    err = cudaMemcpy(points, gpuPoints, instances * 2 * sizeof(EC_point), cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess)
+    {
+        fprintf(stderr, "Failed to copy points from device to host (error code %s)!\n", cudaGetErrorString(err));
+        cudaFree(gpuPoints);
+        cudaFree(gpuParameters);
+        return;
+    }
+
+    cudaFree(gpuPoints);
+    cudaFree(gpuParameters);
 }
 }
