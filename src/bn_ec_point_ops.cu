@@ -106,6 +106,8 @@ __device__ void add_points(EC_point *a, EC_point *b, EC_point *c, bn *Pmod)
         bignum_assign(&temp1, &temp);
     }
 
+    bignum_init(&c->x);
+    bignum_init(&c->x);
     bignum_assign(&c->x, &temp3);
     bignum_assign(&c->y, &temp1);
 }

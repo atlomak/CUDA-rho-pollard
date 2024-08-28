@@ -38,7 +38,7 @@ def get_rho():
         ctypes.POINTER(EC_point),
         ctypes.c_uint32,
         ctypes.c_uint32,
-        ctypes.POINTER(PCMP_point),
+        ctypes.POINTER(EC_point),
         ctypes.POINTER(EC_parameters),
         ctypes.c_uint32,
     ]

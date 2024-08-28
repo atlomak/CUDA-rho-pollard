@@ -1,7 +1,8 @@
-#include "bignum.cuh"
-#include "bn_ec_point_ops.cuh"
+#include "bignum.cu"
+#include "bn_ec_point_ops.cu"
+#include "utils.cuh"
 
-__global__ __launch_bounds__(400, 2) void ker_add_points(EC_parameters *parameters, int32_t instances, EC_point *points)
+__global__ __launch_bounds__(512, 2) void ker_add_points(EC_parameters *parameters, int32_t instances, EC_point *points)
 {
     int32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= instances)
@@ -30,10 +31,10 @@ __global__ __launch_bounds__(400, 2) void ker_add_points(EC_parameters *paramete
     bignum_assign(&b.x, &points[idx * 2 + 1].x);
     bignum_assign(&b.y, &points[idx * 2 + 1].y);
 
-    // for (int i = 0; i < 1000; i++)
-    // {
+    for (int i = 0; i < 10000; i++)
+    {
         add_points(&a, &b, &c, &Pmod);
-    // }
+    }
 
     bignum_assign(&points[idx * 2].x, &c.x);
     bignum_assign(&points[idx * 2].y, &c.y);
@@ -47,38 +48,17 @@ void test_adding_points(EC_point *points, int32_t instances, EC_parameters *para
 
     cudaError_t err;
 
-    err = cudaMalloc(&gpuPoints, instances * 2 * sizeof(EC_point));
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to allocate device memory for points (error code %s)!\n", cudaGetErrorString(err));
-        return;
-    }
+    cudaMalloc(&gpuPoints, instances * 2 * sizeof(EC_point));
+    cudaCheckErrors("Failed to allocate device memory for points");
 
-    err = cudaMalloc(&gpuParameters, sizeof(EC_parameters));
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to allocate device memory for parameters (error code %s)!\n", cudaGetErrorString(err));
-        cudaFree(gpuPoints);
-        return;
-    }
+    cudaMalloc(&gpuParameters, sizeof(EC_parameters));
+    cudaCheckErrors("Failed to allocate device memory for parameters");
 
-    err = cudaMemcpy(gpuPoints, points, instances * 2 * sizeof(EC_point), cudaMemcpyHostToDevice);
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to copy points from host to device (error code %s)!\n", cudaGetErrorString(err));
-        cudaFree(gpuPoints);
-        cudaFree(gpuParameters);
-        return;
-    }
+    cudaMemcpy(gpuPoints, points, instances * 2 * sizeof(EC_point), cudaMemcpyHostToDevice);
+    cudaCheckErrors("Failed to copy points from host to device");
 
-    err = cudaMemcpy(gpuParameters, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice);
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to copy parameters from host to device (error code %s)!\n", cudaGetErrorString(err));
-        cudaFree(gpuPoints);
-        cudaFree(gpuParameters);
-        return;
-    }
+    cudaMemcpy(gpuParameters, parameters, sizeof(EC_parameters), cudaMemcpyHostToDevice);
+    cudaCheckErrors("Failed to copy parameters from host to device");
 
     cudaEvent_t start, stop;
 
@@ -98,23 +78,11 @@ void test_adding_points(EC_point *points, int32_t instances, EC_parameters *para
 
     printf("Elapsed time: %3.1f\n", milliseconds);
 
-    err = cudaGetLastError();
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to launch ker_add_points kernel (error code %s)!\n", cudaGetErrorString(err));
-        cudaFree(gpuPoints);
-        cudaFree(gpuParameters);
-        return;
-    }
+    cudaGetLastError();
+    cudaCheckErrors("Failed to launch kernel");
 
-    err = cudaMemcpy(points, gpuPoints, instances * 2 * sizeof(EC_point), cudaMemcpyDeviceToHost);
-    if (err != cudaSuccess)
-    {
-        fprintf(stderr, "Failed to copy points from device to host (error code %s)!\n", cudaGetErrorString(err));
-        cudaFree(gpuPoints);
-        cudaFree(gpuParameters);
-        return;
-    }
+    cudaMemcpy(points, gpuPoints, instances * 2 * sizeof(EC_point), cudaMemcpyDeviceToHost);
+    cudaCheckErrors("Failed to copy points from device to host");
 
     cudaFree(gpuPoints);
     cudaFree(gpuParameters);

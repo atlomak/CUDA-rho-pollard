@@ -19,9 +19,7 @@ target_include_directories(rho_pollard PRIVATE include/CGBN/include)
 add_library(test_kernel
         SHARED
         src/test_kernel.cu
-        src/bignum.cu
         src/bignum.cuh
-        src/bn_ec_point_ops.cu
         src/bn_ec_point_ops.cuh
 )
 
