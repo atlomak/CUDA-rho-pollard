@@ -2,8 +2,8 @@ import ctypes
 import time
 
 from src.python.c_api import get_test_kernel, EC_point
-from src.python.utils import num_to_limbs
-from src.python.elliptic_curve import P, Q
+from src.python.utils import num_to_limbs, limbs_to_num
+from src.python.elliptic_curve import P, Q, E
 import pytest
 
 INSTANCES = 40960
@@ -53,6 +53,10 @@ def test_add_points_batch_1(parameters, generate_points):
         point_index = i * 2
         result_x = list(points[point_index].x.array)
         result_y = list(points[point_index].y.array)
+
+        x = limbs_to_num(result_x)
+        y = limbs_to_num(result_y)
+        print(E(x, y))
 
         assert expected_x == result_x, f"index: {i}"
         assert expected_y == result_y

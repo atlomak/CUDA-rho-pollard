@@ -16,17 +16,10 @@ typedef struct
     uint32_t zeros_count;
 } EC_parameters;
 
-__device__ void add_points(EC_point *a, EC_point *b, EC_point *c, bn *Pmod)
+__device__ void add_points(EC_point *a, EC_point *b, EC_point *c, bn *Pmod, bn *montgomery_inv)
 {
-    bn temp1, temp2, temp3, x, temp, lambda;
-
-    bignum_sub(&b->x, &a->x, &temp1);
-    if (bignum_cmp(&b->x, &a->x) == SMALLER)
-    {
-        bignum_add(&temp1, Pmod, &temp);
-        bignum_assign(&temp1, &temp);
-        bignum_init(&temp);
-    }
+    bn temp1, temp2, temp3, temp, lambda;
+    bignum_assign(&temp3, montgomery_inv);
 
     bignum_sub(&b->y, &a->y, &temp2);
     if (bignum_cmp(&b->y, &a->y) == SMALLER)
@@ -35,9 +28,6 @@ __device__ void add_points(EC_point *a, EC_point *b, EC_point *c, bn *Pmod)
         bignum_assign(&temp2, &temp);
         bignum_init(&temp);
     }
-
-
-    bignum_modinv(&temp1, Pmod, &temp3);
 
     bignum_mul(&temp3, &temp2, &lambda);
     bignum_mod(&lambda, Pmod, &temp);

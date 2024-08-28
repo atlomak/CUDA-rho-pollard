@@ -5,10 +5,10 @@ from src.python.utils import num_to_limbs, limbs_to_num
 from src.python.elliptic_curve import E, P, Q
 from main import generate_precomputed_points, map_to_index, is_distinguish, generate_starting_points
 
-LEADING_ZEROS = 15
+LEADING_ZEROS = 10
 PRECOMPUTED_POINTS = 200
-N = 1
-INSTANCES = 33
+N = 10
+INSTANCES = 40960
 
 
 @pytest.mark.long

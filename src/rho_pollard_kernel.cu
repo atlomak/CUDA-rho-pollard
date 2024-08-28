@@ -5,11 +5,11 @@
 #include "utils.cuh"
 
 #define PRECOMPUTED_POINTS 200
-#define BATCH_SIZE 10
+#define BATCH_SIZE 3
 
 __shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
-__shared__ int warp_finished;
+__shared__ int warp_finished[8];
 
 __device__ uint32_t is_distinguish(bn *x, uint32_t zeros_count)
 {
@@ -35,11 +35,10 @@ typedef struct
     int stream;
 } rho_pollard_args;
 
-__global__ __launch_bounds__(512, 2) void rho_pollard(rho_pollard_args args, uint32_t stream)
+__global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uint32_t stream)
 {
-    EC_point batch[BATCH_SIZE];
-
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    uint32_t warp_id = threadIdx.x / 32;
 
     if (idx >= args.instances)
     {
@@ -53,6 +52,10 @@ __global__ __launch_bounds__(512, 2) void rho_pollard(rho_pollard_args args, uin
             bignum_assign(&SMEMprecomputed[i].x, &args.precomputed[i].x);
             bignum_assign(&SMEMprecomputed[i].y, &args.precomputed[i].y);
         }
+        for (int i = 0; i < 8; i++)
+        {
+            warp_finished[i] = 0;
+        }
     }
 
     __syncthreads();
@@ -60,38 +63,122 @@ __global__ __launch_bounds__(512, 2) void rho_pollard(rho_pollard_args args, uin
     bn mask_precmp;
     bignum_from_int(&mask_precmp, PRECOMPUTED_POINTS - 1);
 
-    EC_point a, b;
+    EC_point W[BATCH_SIZE], R[BATCH_SIZE];
     bn Pmod;
 
-    bignum_init(&a.x);
-    bignum_init(&a.y);
-
-    bignum_init(&b.x);
-    bignum_init(&b.y);
-
-    bignum_init(&Pmod);
-
     bignum_assign(&Pmod, &args.parameters->Pmod);
-    bignum_assign(&a.x, &args.starting[idx].x);
-    bignum_assign(&a.y, &args.starting[idx].y);
-    bignum_assign(&a.seed, &args.starting[idx].seed);
 
-
-    int iter = 0;
-    while (!is_distinguish(&a.x, args.parameters->zeros_count))
+    for (int i = 0; i < BATCH_SIZE; i++)
     {
-        uint32_t i = map_to_index(&a.x, &mask_precmp);
-        bignum_assign(&b.x, &SMEMprecomputed[i].x);
-        bignum_assign(&b.y, &SMEMprecomputed[i].y);
-        add_points(&a, &b, &a, &Pmod);
-        iter++;
+        bignum_assign(&W[i].x, &args.starting[idx * args.n + i].x);
+        bignum_assign(&W[i].y, &args.starting[idx * args.n + i].y);
+        bignum_assign(&W[i].seed, &args.starting[idx * args.n + i].seed);
     }
-    bignum_assign(&args.starting[idx].x, &a.x);
-    bignum_assign(&args.starting[idx].y, &a.y);
-    bignum_assign(&args.starting[idx].seed, &a.seed);
-    args.starting[idx].is_distinguish = 1;
+    uint32_t read_offset = BATCH_SIZE;
 
-    printf("Thread %d finished in %d iterations\n", idx, iter);
+    uint32_t found_flag[BATCH_SIZE] = {0};
+    bn b[BATCH_SIZE];
+
+    int counter = 0;
+    while (warp_finished[warp_id] == 0)
+    {
+        bn a[BATCH_SIZE];
+
+        for (int i = 0; i < BATCH_SIZE; i++)
+        {
+            if (found_flag[i] == 1)
+            {
+                continue;
+            }
+            uint32_t index = map_to_index(&W[i].x, &mask_precmp);
+            bignum_assign(&R[i].x, &SMEMprecomputed[index].x);
+            bignum_assign(&R[i].y, &SMEMprecomputed[index].y);
+
+            bn temp;
+            bignum_sub(&R[i].x, &W[i].x, &a[i]);
+            if (bignum_cmp(&R[i].x, &W[i].x) == SMALLER)
+            {
+                bignum_add(&a[i], &Pmod, &temp);
+                bignum_assign(&a[i], &temp);
+            }
+        }
+
+        bn v;
+        bignum_from_int(&v, 1);
+
+        for (int i = 0; i < BATCH_SIZE; i++)
+        {
+            if (found_flag[i] == 1)
+            {
+                continue;
+            }
+            bignum_assign(&b[i], &v);
+            bn temp;
+            bignum_mul(&a[i], &v, &temp);
+            bignum_mod(&temp, &Pmod, &v);
+        }
+
+        bn x;
+        bn temp;
+        bignum_modinv(&v, &Pmod, &temp);
+        bignum_assign(&x, &temp);
+
+        for (int i = BATCH_SIZE - 1; i >= 0; i--)
+        {
+            if (found_flag[i] == 1)
+            {
+                continue;
+            }
+            bignum_mul(&x, &b[i], &temp);
+            bignum_mod(&temp, &Pmod, &b[i]);
+
+            bignum_mul(&a[i], &x, &temp);
+            bignum_mod(&temp, &Pmod, &x);
+        }
+
+        for (int i = 0; i < BATCH_SIZE; i++)
+        {
+            if (found_flag[i] == 1)
+            {
+                continue;
+            }
+            add_points(&W[i], &R[i], &W[i], &Pmod, &b[i]);
+        }
+
+        for (int i = 0; i < BATCH_SIZE; i++)
+        {
+            if (found_flag[i] == 1)
+            {
+                continue;
+            }
+            if (is_distinguish(&W[i].x, args.parameters->zeros_count))
+            {
+                bignum_assign(&args.starting[idx * args.n + counter].x, &W[i].x);
+                bignum_assign(&args.starting[idx * args.n + counter].y, &W[i].y);
+                bignum_assign(&args.starting[idx * args.n + counter].seed, &W[i].seed);
+                args.starting[idx * args.n + counter].is_distinguish = 1;
+                printf("Instance: %d found distinguishable point %d\n", idx, counter);
+                found_flag[i] = 1;
+                counter++;
+
+                if (read_offset < args.n)
+                {
+                    printf("Instance: %d reading from offset %d\n", idx, read_offset);
+                    bignum_assign(&W[i].x, &args.starting[idx * args.n + read_offset].x);
+                    bignum_assign(&W[i].y, &args.starting[idx * args.n + read_offset].y);
+                    bignum_assign(&W[i].seed, &args.starting[idx * args.n + read_offset].seed);
+                    read_offset++;
+                    found_flag[i] = 0;
+                }
+            }
+        }
+
+        if (counter == args.n)
+        {
+            warp_finished[warp_id] = 1;
+        }
+        __syncwarp();
+    }
 }
 
 extern "C" {
@@ -133,7 +220,7 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, EC_p
     cudaCheckErrors("Failed to allocate memory for error report");
 
     // 512 threads per block (128 CGBN instances)
-    rho_pollard<<<(instances + 511) / 512, 512>>>(args, stream);
+    rho_pollard<<<(instances + 255) / 256, 256>>>(args, stream);
 
     printf("Launched rho pollard stream %d\n", stream);
     cudaStreamSynchronize(0);

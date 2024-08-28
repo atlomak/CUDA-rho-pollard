@@ -8,9 +8,9 @@ from src.python.c_api import EC_parameters, EC_point, get_rho, PCMP_point
 from src.python.utils import num_to_limbs
 
 PRECOMPUTED_POINTS = 200
-INSTANCES = 40960 * 2
-N = 1
-ZEROS_COUNT = 15
+INSTANCES = 40960
+N = 20
+ZEROS_COUNT = 20
 
 
 if __name__ == "__main__":

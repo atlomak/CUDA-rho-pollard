@@ -31,9 +31,20 @@ __global__ __launch_bounds__(512, 2) void ker_add_points(EC_parameters *paramete
     bignum_assign(&b.x, &points[idx * 2 + 1].x);
     bignum_assign(&b.y, &points[idx * 2 + 1].y);
 
+    bn temp;
+    bn sub;
+    bignum_sub(&b.x, &a.x, &sub);
+    if (bignum_cmp(&b.x, &a.x) == SMALLER)
+    {
+        bignum_add(&sub, &Pmod, &temp);
+        bignum_assign(&sub, &temp);
+    }
+
+    bignum_modinv(&sub, &Pmod, &temp);
+
     for (int i = 0; i < 10000; i++)
     {
-        add_points(&a, &b, &c, &Pmod);
+        add_points(&a, &b, &c, &Pmod, &temp);
     }
 
     bignum_assign(&points[idx * 2].x, &c.x);
