@@ -9,8 +9,8 @@ from src.python.utils import num_to_limbs
 
 PRECOMPUTED_POINTS = 200
 INSTANCES = 40960
-N = 20
-ZEROS_COUNT = 20
+N = 15
+ZEROS_COUNT = 16
 
 
 if __name__ == "__main__":

@@ -8,10 +8,10 @@ import time
 from src.python.elliptic_curve import E, P, Q, curve_order, field_order
 from src.python.gpu_worker import GPUworker, StartingParameters
 
-PRECOMPUTED_POINTS = 850
-INSTANCES = 960
-N = 50
-ZEROS_COUNT = 21
+PRECOMPUTED_POINTS = 128
+INSTANCES = 5120
+N = 14
+ZEROS_COUNT = 20
 
 
 class PrecomputedPoint:
@@ -113,29 +113,27 @@ def main():
 
     params = StartingParameters(ZEROS_COUNT, INSTANCES, N, precomputed_points_worker, field_order, curve_order)
 
-    gpu_worker1 = Thread(target=GPUworker, args=(params, task_queue, result_queue, 1))
-    gpu_worker2 = Thread(target=GPUworker, args=(params, task_queue, result_queue, 2))
+    workers = []
 
-    gpu_worker1.start()
-    gpu_worker2.start()
+    for i in range(20):
+        worker = Thread(target=GPUworker, args=(params, task_queue, result_queue, i))
+        worker.start()
+        workers.append(worker)
 
     print("Workers started")
 
+    for _ in range(len(workers)):
+        starting_points, _ = generate_starting_points(INSTANCES * N, ZEROS_COUNT)
+        task_queue.put(starting_points)
+        print("Sent starting points")
+
     distinguish_points = {}
 
-    starting_points, _ = generate_starting_points(INSTANCES * N, ZEROS_COUNT)
-    print("Sent starting points")
-    task_queue.put(starting_points)
-    print("Sent starting points")
-
-    starting_points, _ = generate_starting_points(INSTANCES * N, ZEROS_COUNT)
-    task_queue.put(starting_points)
-    print("Sent starting points")
-
-    while len(distinguish_points) < 1:
+    while True:
         points = result_queue.get()
 
         starting_points, cpu_found_points = generate_starting_points(INSTANCES * N, ZEROS_COUNT)
+        task_queue.put(starting_points)
 
         points.extend(cpu_found_points)
 
@@ -167,15 +165,15 @@ def main():
                 distinguish_points[xy] = seed
         else:
             print(f"Got {len(distinguish_points)} points")
-            task_queue.put(starting_points)
             continue
         break
 
-    task_queue.put(None)
-    task_queue.put(None)
+    for _ in range(len(workers)):
+        task_queue.put(None)
 
-    gpu_worker1.join()
-    gpu_worker2.join()
+    for worker in workers:
+        worker.join()
+
     print(f"Got {len(distinguish_points)} points")
 
 

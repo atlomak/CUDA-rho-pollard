@@ -35,26 +35,26 @@ def GPUworker(starting_params: StartingParameters, task_queue: Queue, result_que
 
         precomputed_points_size = len(precomputed_points)
         p_points = (EC_point * (instances * n))()
-        p_precomputed_points = (PCMP_point * precomputed_points_size)()
+        p_precomputed_points = (EC_point * precomputed_points_size)()
         parameters = EC_parameters()
 
-        parameters.Pmod._limbs[:] = num_to_limbs(field_order)
-        parameters.a._limbs[:] = num_to_limbs(curve_a)
+        parameters.Pmod.array[:] = num_to_limbs(field_order)
+        parameters.A.array[:] = num_to_limbs(curve_a)
         parameters.zeros_count = zeros_count
 
         for i in range(instances * n):
             point = starting_points[i]
 
-            p_points[i].x._limbs[:] = num_to_limbs(point[0])
-            p_points[i].y._limbs[:] = num_to_limbs(point[1])
-            p_points[i].seed._limbs[:] = num_to_limbs(point[2])
+            p_points[i].x.array[:] = num_to_limbs(point[0])
+            p_points[i].y.array[:] = num_to_limbs(point[1])
+            p_points[i].seed.array[:] = num_to_limbs(point[2])
             p_points[i].is_distinguish = 0
 
         for i in range(precomputed_points_size):
             point = precomputed_points[i]
 
-            p_precomputed_points[i].x._limbs[:] = num_to_limbs(point[0])
-            p_precomputed_points[i].y._limbs[:] = num_to_limbs(point[1])
+            p_precomputed_points[i].x.array[:] = num_to_limbs(point[0])
+            p_precomputed_points[i].y.array[:] = num_to_limbs(point[1])
 
         print(f"GPU worker {stream} started processing")
         cuda_rho_pollard.run_rho_pollard(
@@ -71,9 +71,9 @@ def GPUworker(starting_params: StartingParameters, task_queue: Queue, result_que
         for i in range(instances * n):
             if p_points[i].is_distinguish == 0:
                 continue
-            x = limbs_to_num(p_points[i].x._limbs)
-            y = limbs_to_num(p_points[i].y._limbs)
-            seed = limbs_to_num(p_points[i].seed._limbs)
+            x = limbs_to_num(p_points[i].x.array)
+            y = limbs_to_num(p_points[i].y.array)
+            seed = limbs_to_num(p_points[i].seed.array)
             result_points.append((x, y, seed))
 
         result_queue.put(result_points)

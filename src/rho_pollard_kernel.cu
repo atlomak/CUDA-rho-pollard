@@ -4,12 +4,14 @@
 #include "bn_ec_point_ops.cu"
 #include "utils.cuh"
 
-#define PRECOMPUTED_POINTS 200
-#define BATCH_SIZE 3
+#define PRECOMPUTED_POINTS 128
+#define BATCH_SIZE 10
+
+// #define LOGGING 1
 
 __shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
-__shared__ int warp_finished[8];
+__shared__ int warp_finished;
 
 __device__ uint32_t is_distinguish(bn *x, uint32_t zeros_count)
 {
@@ -47,15 +49,13 @@ __global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uin
 
     if (threadIdx.x == 0)
     {
+        printf("STREAM %d BLOCK %d started\n", stream, blockIdx.x);
         for (int i = 0; i < PRECOMPUTED_POINTS; i++)
         {
             bignum_assign(&SMEMprecomputed[i].x, &args.precomputed[i].x);
             bignum_assign(&SMEMprecomputed[i].y, &args.precomputed[i].y);
         }
-        for (int i = 0; i < 8; i++)
-        {
-            warp_finished[i] = 0;
-        }
+        warp_finished = 0;
     }
 
     __syncthreads();
@@ -76,20 +76,16 @@ __global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uin
     }
     uint32_t read_offset = BATCH_SIZE;
 
-    uint32_t found_flag[BATCH_SIZE] = {0};
     bn b[BATCH_SIZE];
 
     int counter = 0;
-    while (warp_finished[warp_id] == 0)
+    while (warp_finished == 0)
     {
         bn a[BATCH_SIZE];
 
+#pragma unroll 4
         for (int i = 0; i < BATCH_SIZE; i++)
         {
-            if (found_flag[i] == 1)
-            {
-                continue;
-            }
             uint32_t index = map_to_index(&W[i].x, &mask_precmp);
             bignum_assign(&R[i].x, &SMEMprecomputed[index].x);
             bignum_assign(&R[i].y, &SMEMprecomputed[index].y);
@@ -108,10 +104,6 @@ __global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uin
 
         for (int i = 0; i < BATCH_SIZE; i++)
         {
-            if (found_flag[i] == 1)
-            {
-                continue;
-            }
             bignum_assign(&b[i], &v);
             bn temp;
             bignum_mul(&a[i], &v, &temp);
@@ -125,10 +117,6 @@ __global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uin
 
         for (int i = BATCH_SIZE - 1; i >= 0; i--)
         {
-            if (found_flag[i] == 1)
-            {
-                continue;
-            }
             bignum_mul(&x, &b[i], &temp);
             bignum_mod(&temp, &Pmod, &b[i]);
 
@@ -138,44 +126,37 @@ __global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uin
 
         for (int i = 0; i < BATCH_SIZE; i++)
         {
-            if (found_flag[i] == 1)
-            {
-                continue;
-            }
             add_points(&W[i], &R[i], &W[i], &Pmod, &b[i]);
         }
 
+#pragma unroll 4
         for (int i = 0; i < BATCH_SIZE; i++)
         {
-            if (found_flag[i] == 1)
-            {
-                continue;
-            }
             if (is_distinguish(&W[i].x, args.parameters->zeros_count))
             {
                 bignum_assign(&args.starting[idx * args.n + counter].x, &W[i].x);
                 bignum_assign(&args.starting[idx * args.n + counter].y, &W[i].y);
                 bignum_assign(&args.starting[idx * args.n + counter].seed, &W[i].seed);
                 args.starting[idx * args.n + counter].is_distinguish = 1;
-                printf("Instance: %d found distinguishable point %d\n", idx, counter);
-                found_flag[i] = 1;
+
+#ifdef LOGGING
+                printf("STREAM %d, instance: %d found distinguishable point %d\n", stream, idx, counter);
+#endif
                 counter++;
 
                 if (read_offset < args.n)
                 {
-                    printf("Instance: %d reading from offset %d\n", idx, read_offset);
                     bignum_assign(&W[i].x, &args.starting[idx * args.n + read_offset].x);
                     bignum_assign(&W[i].y, &args.starting[idx * args.n + read_offset].y);
                     bignum_assign(&W[i].seed, &args.starting[idx * args.n + read_offset].seed);
                     read_offset++;
-                    found_flag[i] = 0;
                 }
             }
         }
 
-        if (counter == args.n)
+        if (counter == (args.n - BATCH_SIZE))
         {
-            warp_finished[warp_id] = 1;
+            warp_finished = 1;
         }
         __syncwarp();
     }
