@@ -1,0 +1,65 @@
+\newpage
+\section{Implementacja}
+
+\subsection*{Ogólna architektura}
+
+Równoległy algorytm Rho Pollarda zakłada architekturę, w której jeden serwer zbiera wygenerowane przez klientów punkty charakterystyczne i porównuje je
+w celu znalezienia kolizji. W mojej pracy rolę serwera pełni program działający na CPU, delegujący obliczenia koprocesora, jakim jest GPU.
+Klientami generującym punkty charakerystyczne są instancje funkcji iteracyjnej, uruchamiane na GPU, obliczające kolejne punkty podczas spaceru losowego po krzywej eliptycznej.
+W celu uproszczenia implementacji kodu po stronie GPU, oraz utyliacji zasobów serwera w czasie oczekiwania na kolejne serie punktów, punkty startowe
+stanowiące punkt wejściowy każdej instancji, generowane są po stronie serwera. Za uruchamianie kolejnych serii obliczeń na koprocesorze, odpowiada program uruchomiony w osobnym wątku
+komunikujący się z serwerem za pomocą synchronizowanych kolejek.
+Taka implementacja architektury, w której asynchronicznie programy nadzorują pracę GPU, pozwala na bardzo proste rozszerzenie obliczeń o kolejne koprocesory.
+Wystarczy uruchomić kolejny wątek z \textit{worker'em} wskazując odpowiedni identyfikator GPU.
+
+
+\subsection*{Artmetyka na ciele $F_{79}$}
+
+\subsubsection{Biblioteka CGBN}
+
+\subsubsection{Reprezentacja punktów 79 bit na platformie CUDA}
+Największym słowem bitowych dostępnym natywnie na platformie CUDA, jest 64 bitowy typ danych. Taka reprezentacja nie wystarcza,
+do przeprowadzenia operacji na krzywej ECCp79bit. W tym celu należy przedstawić liczbę większą od natywnego rozmiaru, jako wektor wielu słów bitowych
+rozmiaru o jeden mniejszego od największego dostępnego.  Przykładowo, punkt na krzywej eliptycznej o współrzędnych rozmiaru 96 bit, można przedstawić w następujący sposób:
+
+\begin{lstlisting}[language=C++]
+typedef struct
+{
+    uint32_t x[3];
+    uint32_t y[3];
+} EC_point;
+\end{lstlisting}
+
+\subsubsection{Dodawanie}
+
+\subsubsection{Mnożenie}
+
+\subsubsection{Odwrotność modulo p}
+
+\subsection*{Funkcja iterująca}
+
+\subsubsection{Wybór sposobu generowanie kolejnych punktów}
+
+\subsubsection{Wstępnie obliczone punkty}
+cytowanie about rho pollard walks
+
+% \subsubsection{Reducja Berreta}
+
+\subsubsection{Obliczanie odwrotnosci w seriach}
+
+\subsection{Tailing effect}
+\subsubsection{Rozmiar bloku}
+\subsubsection{Uruchomienia asynchroniczne}
+
+\subsection{Serwer}
+
+\subsubsection{GPUWorker}
+
+\subsubsection{Komunikacja}
+
+\section{Wyniki}
+
+\subsection{Dalsze usprawnienia}
+Redukcja berreta
+
+\subsection{Porównanie z innymi pracami}
