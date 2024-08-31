@@ -6,9 +6,9 @@ from src.python.elliptic_curve import E, P, Q
 from main import generate_precomputed_points, map_to_index, is_distinguish, generate_starting_points
 
 LEADING_ZEROS = 10
-PRECOMPUTED_POINTS = 200
-N = 10
-INSTANCES = 40960
+PRECOMPUTED_POINTS = 128
+N = 12
+INSTANCES = 200
 
 
 @pytest.mark.long

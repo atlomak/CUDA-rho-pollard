@@ -7,10 +7,10 @@ from src.python.elliptic_curve import field_order, curve_a
 from src.python.c_api import EC_parameters, EC_point, get_rho, PCMP_point
 from src.python.utils import num_to_limbs
 
-PRECOMPUTED_POINTS = 200
+PRECOMPUTED_POINTS = 128
 INSTANCES = 40960
-N = 15
-ZEROS_COUNT = 16
+N = 14
+ZEROS_COUNT = 15
 
 
 if __name__ == "__main__":
