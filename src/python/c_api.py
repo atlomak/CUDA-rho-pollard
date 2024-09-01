@@ -1,5 +1,6 @@
 import ctypes
 from pathlib import Path
+from math import ceil
 
 # currently 96 bits as 3 * 32 unsigned int
 LIMBS = 5
@@ -7,6 +8,10 @@ LIMBS = 5
 
 class bn(ctypes.Structure):
     _fields_ = [("array", ctypes.c_uint32 * LIMBS)]
+
+
+class small_bn(ctypes.Structure):
+    _fields_ = [("array", ctypes.c_uint32 * ceil(LIMBS / 2))]
 
 
 class EC_point(ctypes.Structure):
@@ -19,7 +24,7 @@ class EC_point(ctypes.Structure):
 
 
 class PCMP_point(ctypes.Structure):
-    _fields_ = [("x", bn), ("y", bn)]
+    _fields_ = [("x", small_bn), ("y", small_bn)]
 
 
 class EC_parameters(ctypes.Structure):
@@ -38,7 +43,7 @@ def get_rho():
         ctypes.POINTER(EC_point),
         ctypes.c_uint32,
         ctypes.c_uint32,
-        ctypes.POINTER(EC_point),
+        ctypes.POINTER(PCMP_point),
         ctypes.POINTER(EC_parameters),
         ctypes.c_uint32,
     ]

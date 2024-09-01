@@ -35,7 +35,7 @@ def GPUworker(starting_params: StartingParameters, task_queue: Queue, result_que
 
         precomputed_points_size = len(precomputed_points)
         p_points = (EC_point * (instances * n))()
-        p_precomputed_points = (EC_point * precomputed_points_size)()
+        p_precomputed_points = (PCMP_point * precomputed_points_size)()
         parameters = EC_parameters()
 
         parameters.Pmod.array[:] = num_to_limbs(field_order)
@@ -53,8 +53,8 @@ def GPUworker(starting_params: StartingParameters, task_queue: Queue, result_que
         for i in range(precomputed_points_size):
             point = precomputed_points[i]
 
-            p_precomputed_points[i].x.array[:] = num_to_limbs(point[0])
-            p_precomputed_points[i].y.array[:] = num_to_limbs(point[1])
+            p_precomputed_points[i].x.array[:] = num_to_limbs(point[0], 3)
+            p_precomputed_points[i].y.array[:] = num_to_limbs(point[1], 3)
 
         print(f"GPU worker {stream} started processing")
         cuda_rho_pollard.run_rho_pollard(

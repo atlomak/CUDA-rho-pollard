@@ -79,6 +79,11 @@ struct bn
     DTYPE array[BN_ARRAY_SIZE];
 };
 
+struct small_bn
+{
+    DTYPE array[(BN_ARRAY_SIZE + 1) / 2];
+};
+
 
 /* Tokens returned by bignum_cmp() for value comparison */
 enum

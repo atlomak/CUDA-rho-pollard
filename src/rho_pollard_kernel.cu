@@ -1,15 +1,13 @@
-#include <cstdint>
-#include <cstdio>
 #include "bignum.cu"
 #include "bn_ec_point_ops.cu"
 #include "utils.cuh"
 
-#define PRECOMPUTED_POINTS 128
+#define PRECOMPUTED_POINTS 1024
 #define BATCH_SIZE 10
 
 // #define LOGGING 1
 
-__shared__ EC_point SMEMprecomputed[PRECOMPUTED_POINTS];
+__shared__ PCMP_point SMEMprecomputed[PRECOMPUTED_POINTS];
 
 __shared__ int warp_finished;
 
@@ -30,14 +28,14 @@ __device__ uint32_t map_to_index(bn *x, bn *mask)
 typedef struct
 {
     EC_point *starting;
-    EC_point *precomputed;
+    PCMP_point *precomputed;
     EC_parameters *parameters;
     uint32_t instances;
     uint32_t n;
     int stream;
 } rho_pollard_args;
 
-__global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uint32_t stream)
+__global__ __launch_bounds__(512, 2) void rho_pollard(rho_pollard_args args, uint32_t stream)
 {
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint32_t warp_id = threadIdx.x / 32;
@@ -52,8 +50,8 @@ __global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uin
         printf("STREAM %d BLOCK %d started\n", stream, blockIdx.x);
         for (int i = 0; i < PRECOMPUTED_POINTS; i++)
         {
-            bignum_assign(&SMEMprecomputed[i].x, &args.precomputed[i].x);
-            bignum_assign(&SMEMprecomputed[i].y, &args.precomputed[i].y);
+            bignum_assign_small(&SMEMprecomputed[i].x, &args.precomputed[i].x);
+            bignum_assign_small(&SMEMprecomputed[i].y, &args.precomputed[i].y);
         }
         warp_finished = 0;
     }
@@ -87,8 +85,8 @@ __global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uin
         for (int i = 0; i < BATCH_SIZE; i++)
         {
             uint32_t index = map_to_index(&W[i].x, &mask_precmp);
-            bignum_assign(&R[i].x, &SMEMprecomputed[index].x);
-            bignum_assign(&R[i].y, &SMEMprecomputed[index].y);
+            bignum_assign_fsmall(&R[i].x, &SMEMprecomputed[index].x);
+            bignum_assign_fsmall(&R[i].y, &SMEMprecomputed[index].y);
 
             bn temp;
             bignum_sub(&R[i].x, &W[i].x, &a[i]);
@@ -163,11 +161,11 @@ __global__ __launch_bounds__(256, 4) void rho_pollard(rho_pollard_args args, uin
 }
 
 extern "C" {
-void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, EC_point *precomputed_points, EC_parameters *parameters, int stream)
+void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, PCMP_point *precomputed_points, EC_parameters *parameters, int stream)
 {
     printf("Starting rho pollard: zeroes count %d", parameters->zeros_count);
     EC_point *gpu_starting;
-    EC_point *gpu_precomputed;
+    PCMP_point *gpu_precomputed;
     EC_parameters *gpu_params;
 
     cudaSetDevice(0);
@@ -179,10 +177,10 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, EC_p
     cudaMemcpyAsync(gpu_starting, startingPts, sizeof(EC_point) * instances * n, cudaMemcpyHostToDevice);
     cudaCheckErrors("Failed to copy starting points to device");
 
-    cudaMalloc((void **)&gpu_precomputed, sizeof(EC_point) * PRECOMPUTED_POINTS);
+    cudaMalloc((void **)&gpu_precomputed, sizeof(PCMP_point) * PRECOMPUTED_POINTS);
     cudaCheckErrors("Failed to allocate memory for precomputed points");
 
-    cudaMemcpyAsync(gpu_precomputed, precomputed_points, sizeof(EC_point) * PRECOMPUTED_POINTS, cudaMemcpyHostToDevice);
+    cudaMemcpyAsync(gpu_precomputed, precomputed_points, sizeof(PCMP_point) * PRECOMPUTED_POINTS, cudaMemcpyHostToDevice);
     cudaCheckErrors("Failed to copy precomputed points to device");
 
     cudaMalloc((void **)&gpu_params, sizeof(EC_parameters));
@@ -201,7 +199,7 @@ void run_rho_pollard(EC_point *startingPts, uint32_t instances, uint32_t n, EC_p
     cudaCheckErrors("Failed to allocate memory for error report");
 
     // 512 threads per block (128 CGBN instances)
-    rho_pollard<<<(instances + 255) / 256, 256>>>(args, stream);
+    rho_pollard<<<(instances + 511) / 512, 512>>>(args, stream);
 
     printf("Launched rho pollard stream %d\n", stream);
     cudaStreamSynchronize(0);

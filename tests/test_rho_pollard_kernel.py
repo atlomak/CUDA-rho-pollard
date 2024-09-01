@@ -6,7 +6,7 @@ from src.python.elliptic_curve import E, P, Q
 from main import generate_precomputed_points, map_to_index, is_distinguish, generate_starting_points
 
 LEADING_ZEROS = 10
-PRECOMPUTED_POINTS = 128
+PRECOMPUTED_POINTS = 1024
 N = 12
 INSTANCES = 200
 
@@ -14,7 +14,7 @@ INSTANCES = 200
 @pytest.mark.long
 def test_iteration_function(parameters):
     p_points = (EC_point * (INSTANCES * N))()
-    p_precomputed_points = (EC_point * PRECOMPUTED_POINTS)()
+    p_precomputed_points = (PCMP_point * PRECOMPUTED_POINTS)()
 
     starting_points: list
     starting_points, _ = generate_starting_points(INSTANCES * N, LEADING_ZEROS)
@@ -38,8 +38,8 @@ def test_iteration_function(parameters):
     for i in range(PRECOMPUTED_POINTS):
         point = precomputed_points[i].point
 
-        p_precomputed_points[i].x.array[:] = num_to_limbs(point[0])
-        p_precomputed_points[i].y.array[:] = num_to_limbs(point[1])
+        p_precomputed_points[i].x.array[:] = num_to_limbs(point[0], 3)
+        p_precomputed_points[i].y.array[:] = num_to_limbs(point[1], 3)
 
     cuda_rho_pollard = get_rho()
     cuda_rho_pollard.run_rho_pollard(p_points, INSTANCES, N, p_precomputed_points, ctypes.byref(parameters), 0)

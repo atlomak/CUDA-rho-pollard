@@ -561,6 +561,31 @@ __device__ void bignum_assign(struct bn *dst, struct bn *src)
     }
 }
 
+// Assign from half size to full size
+__device__ void bignum_assign_fsmall(struct bn *dst, struct small_bn *src)
+{
+    require(dst, "dst is null");
+    require(src, "src is null");
+
+    int i;
+    bignum_init(dst);
+    for (i = 0; i < (BN_ARRAY_SIZE + 1) / 2; ++i)
+    {
+        dst->array[i] = src->array[i];
+    }
+}
+
+__device__ void bignum_assign_small(struct small_bn *dst, struct small_bn *src)
+{
+    require(dst, "dst is null");
+    require(src, "src is null");
+
+    int i;
+    for (i = 0; i < (BN_ARRAY_SIZE + 1) / 2; ++i)
+    {
+        dst->array[i] = src->array[i];
+    }
+}
 
 /* Private / Static functions. */
 __device__ static void _rshift_word(struct bn *a, int nwords)

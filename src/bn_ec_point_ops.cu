@@ -11,6 +11,12 @@ typedef struct
 
 typedef struct
 {
+    small_bn x;
+    small_bn y;
+} PCMP_point;
+
+typedef struct
+{
     bn Pmod;
     bn A;
     uint32_t zeros_count;
