@@ -1,65 +1,485 @@
 \newpage
 \section{Implementacja}
+Ta część pracy jest poświęcona implementacji całego systemu,
+wraz ze szczegółowym opisem narzędzi oraz sprzętu wykorzystanego
+przy pracy nad projektem.
+\par
+Większość opisanych zagadnień dotyczy części klienta napisanej w CUDA C++,
+poza sekcją na końcu, poświęconą serwerowi oraz częsci klienta działającej na CPU.
 
-\subsection*{Ogólna architektura}
+\subsection{Narzędzia oraz sprzęt}
+\subsubsection{Sprzęt}
+\begin{itemize}
+    \item OS: openSUSE Tumbleweed 20240812
+    \item CPU: Intel Core i5-10600KF 4.10 GHz
+    \item RAM: 16 GB
+    \item GPU: GeForce RTX 2070 Super
+\end{itemize}
 
-Równoległy algorytm Rho Pollarda zakłada architekturę, w której jeden serwer zbiera wygenerowane przez klientów punkty charakterystyczne i porównuje je
-w celu znalezienia kolizji. W mojej pracy rolę serwera pełni program działający na CPU, delegujący obliczenia koprocesora, jakim jest GPU.
-Klientami generującym punkty charakerystyczne są instancje funkcji iteracyjnej, uruchamiane na GPU, obliczające kolejne punkty podczas spaceru losowego po krzywej eliptycznej.
-W celu uproszczenia implementacji kodu po stronie GPU, oraz utyliacji zasobów serwera w czasie oczekiwania na kolejne serie punktów, punkty startowe
-stanowiące punkt wejściowy każdej instancji, generowane są po stronie serwera. Za uruchamianie kolejnych serii obliczeń na koprocesorze, odpowiada program uruchomiony w osobnym wątku
-komunikujący się z serwerem za pomocą synchronizowanych kolejek.
-Taka implementacja architektury, w której asynchronicznie programy nadzorują pracę GPU, pozwala na bardzo proste rozszerzenie obliczeń o kolejne koprocesory.
-Wystarczy uruchomić kolejny wątek z \textit{worker'em} wskazując odpowiedni identyfikator GPU.
+\subsubsection{Program po stronie CPU}
+Implementacja programu serwera działającego po stronie CPU, została wykonana z wykorzystaniem
+języka Python w wersji 3.11.1 wraz z pakietem obliczeniowym SageMath w wersji 10.4.beta3.
+Program klienta został zaimplementowany z wykorzystaniem języka Python w wersji 3.11.1 oraz
+języka CUDA C++ w wersji 12.4.
+
+\subsubsection{System budowania oraz kompilacja CUDA C++}
+W celu zarządzania kompilacją częsci projektu napisanej w języku CUDA oraz C++,
+wykorzystałem narzędzie \textit{CMake}.
+\textit{CMake} zapewnia natywne wsparcie dla języka CUDA,
+co znacznie upraszcza wszelkie zarządzanie kompilacją oraz linkowanie.
+Dodatkowo, wymaga to znacznie mniej wstępnej konfiguracji niż analogiczne
+rozwiązanie z wykorzystaniem samego narzędzia do budowania takiego jak \textit{Make} lub \textit{Ninja}.
+\par
+Program napisany w CUDA kompilowany był z wykorzystaniem kompilatora NVCC dostarczonego wraz z pakietem
+\textit{CUDA Toolkit} w wersji 12.4.
+NVCC do kompilacji kodu po stronie host'a (CPU) wykorzystuje kompilator z GCC w wesji 13.3.1.
 
 
-\subsection*{Artmetyka na ciele $F_{79}$}
+\subsubsection{Testy}
+Wszelkie testy poprawności implemetnacji rozwiązania są przeprowadzane z wykorzystaniem framework'a PyTest dla języka Python.
+Python wraz z wykorzystaniem pakietu obliczeniowego SageMath generuje testowe dane, które
+są przekazywane do programu działającego na GPU. Następnie, otrzymane wyniki są porównywane z rezultatami
+obliczonymi przy wykorzystaniu SageMath. Wykorzystanie PyTest oraz SageMath znacznie przyśpieszyło pracę
+nad implementacją operacji na krzywej eliptycznej oraz docelowej implementacji algorytmu Rho Pollarda.
+Możliwość szybkiego generowania dużych zbiorów danych testowych, pozwoliło na wczesne zauważenie wielu subtelnych błędów
+na etapie implementacji.
 
-\subsubsection{Biblioteka CGBN}
 
-\subsubsection{Reprezentacja punktów 79 bit na platformie CUDA}
-Największym słowem bitowych dostępnym natywnie na platformie CUDA, jest 64 bitowy typ danych. Taka reprezentacja nie wystarcza,
-do przeprowadzenia operacji na krzywej ECCp79bit. W tym celu należy przedstawić liczbę większą od natywnego rozmiaru, jako wektor wielu słów bitowych
-rozmiaru o jeden mniejszego od największego dostępnego.  Przykładowo, punkt na krzywej eliptycznej o współrzędnych rozmiaru 96 bit, można przedstawić w następujący sposób:
+
+\subsection{Artmetyka na ciele $F_{p}$}
+\subsubsection{Reprezentacja długich liczb}
+Natywnie w języku C oraz CUDA C++ nie istnieje typ danych, który pozwalałby na przechowywanie liczb większych niż 64 bitowe.
+W celu przeprowadzenia obliczeń na liczbach większych niż natywny rozmiar słowa bitowego,
+niezbędna jest odpowiednia implementacja nowych typów danych jak i samych operacji.
+W przypadku ciała $F_{p}$, gdzie $p$ jest liczbą pierwszą o rozmiarze 79 bit, potrzebujemy conajmniej 79 bitowego typu danych, do samego przechowywania liczb.
+Jednak nawet 79 bitowy typ danych nie wystarczy, jeżeli chcemy przeprowadzić operację mnożenia
+dwóch liczb 79 bitowych. W takim przypadku, wynik pośredni może być maksymalnie $2*79 = 158$ bitowy.
+Dodatkowo, w celu reprezentacji takiej liczby, nie możemy się posłużyć wektorem składającym się z największego
+dostępnego natywnie typu danych,
+ponieważ wyniki pośrednie z operacji mnożenia lub dodawania mogą przekroczyć rozmiar słowa bitowego.
+W tym celu musimy wykorzystać typ danych mniejszy od maksymalnego. W przypadku CUDA C++, największy wspierany typ danych
+wynosi 64 bit, więc w celu reprezentacji liczb, musiałem wykorzystać wektor składający się z 32 bitowych słów.
+Najbliższa wielokrotność liczby 32 bitowej, większa niż 158 bit to 160 bit,
+dlatego w celu reprezentacji liczb na ciele, wykorzystywany jest wektor postaci:
+$$
+    \sum_{i = 0}^{4} x_i\cdot 2^{32}
+$$
+
+Zaimplemetowany jako tablica typu u\_int32:
+\begin{lstlisting}[language=C++]
+struct bn
+{
+    uint32_t array[5];
+};
+\end{lstlisting}
+Dla liczb, na których bezpośrednio nie będą wykonywane operacje arytmetyczne, wykorzystywany jest mniejszy, tymczasowy typ
+danych.
+Ograniczone zasoby szybkiej pamięci współdzielonej na GPU, wymuszają oszczędne zarządzanie pamięcią. W celu
+przechowywania wstępnie obliczonych punktów w pamięci współdzielonej, wykorzystuję następujący typ danych:
+\begin{lstlisting}[language=C++]
+struct small_bn
+{
+    uint32_t array[3];
+};
+\end{lstlisting}
+\par
+Liczby w takiej postaci, przed przeprowadzeniem na nich operacji arytmetycznych, są ładowane z pamięci współdzielonej i z powrotem konwertowane na większy typ danych.
+Pozwala to zaoszczędzić $ 2 \cdot 32$ bitów na każdej liczbie, co w przypadku punktu składającego się z dwóch wspórzędnych
+daje oszczędnośc $2 \cdot 2 \cdot 32 = 128$ bitów na punkt znajdujący się w pamięci.
+
+\subsubsection{Operacje na długich liczbach}
+Do operacji na długich liczbach, odpowiednio dostosowałem małą bibliotekę
+dostępną w domenie publicznej: \textit{tiny-bingum-c}.
+Bilbioteka ta dostarcza podstawowe operacje na dużych liczbach w postaci wektorów, takie jak dodawanie, odejmowanie, mnożenie czy dzielenie.
+Wykorzystuje w tym celu standardowe algorytmy \cite{Menezes2001} wykorzystywane przy obliczeniach \textit{multiple precision}.
+Dużą zaletą ten biblioteki jest jej prostota i brak wykorzysywania standardowej biblioteki C oraz dynamicznej alokacji pamięci.
+Wszystkie operacja są wykonywane z wykorzystaniem stosu,
+co pozwala na jej wykorzystanie w środowiskach takich jak GPU, gdzie dostęp do dynamicznej alokacji pamieci jest ograniczony.
+W większości przypadków, aby dostosować kod z biblioteki do CUDA C++ wystarczyło dodanie
+odpowiedniej dyrektywy \textit{\_\_device\_\_} przed każdą deklaracją funkcji, która informuje kompilator, że dana funkcja
+będzie wykonywana na GPU.
+\par
+Prymitywy matematyczne dostarczane przez bibliotekę \textit{tiny-bignum-c} nie są jednak wystarczające do przeprowadzenia
+operacji na ciele $F_{p}$.
+W związku z tym, zaimplementowałem dodatkowe operacje modularne takie jak mnożenie, dodawanie, odejmowanie i odwrotność modulo.
+
+\subsubsection{Dodawanie i odejmowanie modulo}
+Dodawanie oraz odejmowanie modulo $p$, wygląda bardzo podobnie do standardowego dodawania i odejmowania.
+\par
+W przypadku odejmowanie dówch liczb na ciele $F_{p}$, nie ma potrzeby redukcji modulo p po każdej operacji.
+Jednak niezbędne jest upewnienie się, że wynik nie jest ujemny. Ponieważ prowadzimy obliczenia na liczbach bez znaku,
+to w sytuacji gdy $a - b = c; a < b$, nastąpi przepełnienie i wynik będzie w postaci $2^{32 \cdot n}-1 - c$, gdzie $n$ to rozmiar
+wektora do przechowywania liczb. Na szczęście, możemy bardzo łatwo wrócić do poprawnego wyniku wykorzystując jedną operację
+dodawania. Korzystając z faktu, że wszystkie podstawowe operacje są wykonywane modulo $2^{32 \cdot n}$:
+$$
+    2^{32 \cdot n} - 1 - c + p \equiv p - c \pmod{2^{32 \cdot n}}
+$$
+Przykładowa implementacja z wykorzystaniem \textit{tiny-bignum-c}:
 
 \begin{lstlisting}[language=C++]
-typedef struct
+bignum_sub(a, b, c);
+if (bignum_cmp(a, b) == SMALLER)
 {
-    uint32_t x[3];
-    uint32_t y[3];
-} EC_point;
+    bignum_add(c, p, temp);
+    bignum_assign(c, temp);
+}
 \end{lstlisting}
+\par
+Dodawanie modulo $p$ jest prostsze.
+Aby wykonać dodawanie modularne, wystarczy wykonać standardowe dodawanie i ewentualnie jeżeli $a + b >= p$ zredukować wynik odejmując
+od niego liczbę p.
 
-\subsubsection{Dodawanie}
+\subsubsection{Mnożenie modulo}
+Mnożenie modularne jest bardziej kosztowne niż dodawanie czy odejmowanie, ponieważ wymaga dzielenia z resztą.
+W swojej pracy przeprowadzam standardowe mnożenie modularne, jednak również istnieją bardziej wydajne sposoby, na przykład wykorzystanie redukcji Barreta CITE APPLIED.
+\par
+Aby przeprowadzić klasyczne mnożenie modularne ciele $F_{p}$, na początku musimy przeprowadzić standardowe mnożenie długich liczb.
+Następnie, otrzymany wynik dzielimy przez $p$ i zwracamy resztę z dzielenia.
+Zarówno mnożenie jak i dzielenie z resztą, są funkcjami dostarczonymi
+w bibliotece \textit{tiny-bignum-c}, więc mnożenie modularne sprowadza się do wykonania tych dwóch operacji jedna po drugiej.
 
-\subsubsection{Mnożenie}
+\subsubsection{Odwrotność modulo}
+Obliczanie odwrotności modulo $p$ jest najbardziej kosztowną operacją na ciele $F_{p}$, głównie ze względu
+na wielokrotne dzielenie w pętli.
+Algorytm obliczania odwrotności modulo $p$ zaimplementowałem z wykorzystaniem rozszerzonego algorytmu Euklidesa,
+który został zmodyfikowany do działania na liczbach nieujemnych. Główna różnica względem klasycznego algorytmu,
+polega na wykorzystaniu dodatkowych zmiennych do śledzenia zmian znaku wyniku.
 
-\subsubsection{Odwrotność modulo p}
+\begin{algorithm}[]
+    \caption{Odwrotność modularna a mod b}
+    \label{alg:inverse}
+    \begin{algorithmic}[1]
+        \State \text{\textbf{Input: }} $a, b$
+        \State $b_0 \gets b$
+        \State $x_0 \gets 0$
+        \State $x_1 \gets 1$
+        \State $x_{0\_sign} \gets 0$
+        \State $x_{1\_sign} \gets 0$
 
-\subsection*{Funkcja iterująca}
+        \While{$a > 1$}
+        \State $q \gets a \div b$
+        \State $t \gets b$
+        \State $b \gets a \mod b$
+        \State $a \gets t$
 
-\subsubsection{Wybór sposobu generowanie kolejnych punktów}
+        \State $t_2 \gets x_0$
+        \State $t_{2\_sign} \gets x_{0\_sign}$
+        \State $qx_0 \gets q \times x_0$
+
+        \If{$x_{0\_sign} \neq x_{1\_sign}$}
+        \State $x_0 \gets x_1 + qx_0$
+        \State $x_{0\_sign} \gets x_{1\_sign}$
+        \Else
+        \If{$x_1 > qx_0$}
+        \State $x_0 \gets x_1 - qx_0$
+        \State $x_{0\_sign} \gets x_{1\_sign}$
+        \Else
+        \State $x_0 \gets qx_0 - x_1$
+        \State $x_{0\_sign} \gets 1 - x_{0\_sign}$
+        \EndIf
+        \EndIf
+
+        \State $x_1 \gets t_2$
+        \State $x_{1\_sign} \gets t_{2\_sign}$
+        \EndWhile
+        \If{$x_{1\_sign} == 1$}
+        \State \Return $b - x_1$
+        \Else
+        \State \Return $x_1$
+        \EndIf
+
+    \end{algorithmic}
+\end{algorithm}
+
+
+\subsubsection{Biblioteka CGBN}
+W pierwotnej wersji swojej pracy, do operacji na dużych liczbach wykorzystałem specjalną bibliotekę CGBN dla platformy CUDA. Oferuje ona
+wszystkie podstawowe operacje na długich liczbach, takie jak dodawnia, odejmowanie czy mnożenie nawet do 32 tyś. bitów.
+Dodatkowo, posiada ona implementację bardziej zaawansowanych funkcji, takich jak odwrotność modulo czy redukcja Barreta.
+Niestety, biblioteka ta narzuca spore ograniczenia pod kątem zasobów. Niezbędne jest grupowanie wątków w grupy
+4, 8, 16 lub 32. Wysoką wydajność obliczeń, uzyskiwałem dopiero w grupach składających się z 32 wątków.
+Pomimo znacznie szybszego wykonywania się poszczególnych operacji w ramach takiej grupy wątków, narzucone
+ograniczenia oraz wysokie użycie rejestrów uniemożliwiało
+efektywne zaimplementowanie dużej ilości takich instancji działających równolegle.
+Całkowita wydajność mierzona w ilości operacji na krzywej na sekundę osiągnięta z jej wykorzystaniem była średnio 4.57 razy gorsza, niż
+z wykorzystaniem znacznie prostszej implementacji na bazie \textit{tiny-bignum-c}.
+
+
+\subsection{Funkcja iterująca}
+DO UZUPEŁNIENIA - max 0.5 strony - ogólnie przypomnienie tego co było na początku w teorii, że addition walk jest lepszy dla SIMD niż klasyczna wersja rho pollarda
+
 
 \subsubsection{Wstępnie obliczone punkty}
-cytowanie about rho pollard walks
+Dostęp do wstępnie obliczonych punktów jest niezbędny w każdej iteracji \textit{Addition walk}.,
+dlatego ważne jest, aby je przechowywać w szybkiej pamięci. Wykorzystałem w tym celu pamięć współdzieloną \textit{shared memory}.
+W przeciwieństwie do znacznie większej pamięci globalnej, jest ona przechowywana bezpośrednio na SM \cite{CUDA_BOOK}.
+Ponieważ ilość punktów która zapewnia dostatecznie losowy spacer po krzywej eliptycznej jest stosunkowo niewielka \cite{Teske2000},
+to rozmiar pamięci nie stanowi problemu. W docelowej wersji, przechowywane jest 128 punktów.
+\par
+Funkcja przydzielająca punkt wstępnie obliczony, na podstawie aktualnie sumowanego punktu została zaimplementowana
+poprzez operację AND maski bitowej ze współrzędną $x$ punktu.
+W ten sposób, każdy punkt $W_i$ jest przyporządkowany do jednego z 128 wstępnie obliczonych punktów,
+a następnie punkty są dodawane do siebie.
 
-% \subsubsection{Reducja Berreta}
 
+\subsubsection{Punkty wyróżnione}
+W ramach każdej iteracji, musimy w wydajny i szybki sposób sprawdzić, czy obliczony punkt jest punktem wyróźnionym.
+W mojej implementacji, kryterium warunkującym jest liczba zer na końcu współrzędnej $x$ obliczonego punktu.
+\par
+Do sprawdzenia, czy punkt jest wyróźnionym, słuzy prosta funkcja obliczająca bitową operację AND ze
+współrzędnej punktu oraz specjalnej maski bitowej wyznaczanej na podstawie poszukiwanej ilości zer.
+Przykładowo, dla poszukiwanej liczby zer 3, maska będzie w postaci $0 ... 00111$. Jeżeli
+również ostatnie 3 bity współrzędnej $x$ będzie miało zerowy znak, to otrzymany wynik operacji AND wyniesie 0.
+\par
+Istotne jest, aby taka sama funkcja została zaimplementowana po stronie serwera na CPU, ponieważ w przypadku znalezienia kolizji,
+musi on być w stanie odtworzyć cały spacer losowy prowadzący do danego punktu wyróźnionego.
+
+\begin{algorithm}
+    \caption{Funkcja \texttt{is\_distinguish}}
+    \begin{algorithmic}[1]
+        \State \textbf{Input:} $x$, $liczba\_zer$
+        \State $mask \gets 1 \ll liczba\_zer - 1$
+
+        \If{$(x \ \& \ mask) == 0$}
+        \State \Return \textbf{true}
+        \Else
+        \State \Return \textbf{false}
+        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+
+\par
+Aby ułatwić testy na różnych etapach implementacji całego systemu,
+liczba sprawdzanej ilości zer jest sparametryzowana. Przy starcie każdej serii obliczeń, poszukiwana liczba zer jest jednym z parametrów przekazywanym
+do funkcji kernel'a.
+\par
+Po znalezieniu punktu wyróźnionego, ustawiana jest specjalna flaga w strukturze przechowującej dane punktu oraz
+jest on zapisywany pod pierwsze wolne miejsce w pamięci globalnej.
+
+\subsubsection{Dodawanie punktów na krzywej eliptycznej}
+DO UZUPEŁNIENIA - max 0.5 strony większość jest poniżej.
+MOZE NAWET POMINĄC, w sumie to przepisanie tego co jest w teorii z wykorzystaniem zaimplementowanych prymitywów matematycznych???
 \subsubsection{Obliczanie odwrotnosci w seriach}
+Każda operacja dodawania punktów na krzywej eliptycznej we współrzędnych afinicznych, składa się z 3 mnożeń modularnych oraz jednej operacji obliczania odwrotności w ciele.
+Przeprowadza się również operację dodawania i odejmowania modularnego, jednak ich koszt obliczeniowy jest pomijalnie mały \cite{Blake2005}.
+\par
+Koszt dodawania punktów na krzywej:
+$$
+    1O + 3M
+$$
+Najdroższym działaniem, które wpływa na wysoki koszt obliczeniowy  mnożenia modularnego oraz odwrotności w ciele,
+jest operacja dzielenia \cite{Menezes2001}.
+Przykładowo, wykorzystywana przeze mnie implementacja dzielenia stosuje prosty algorytm \textit{long division},
+o złożoności obliczeniowej $O(n^2)$.
+\par
+Warto zauważyć, że operacja obliczania odwrotności modularnej z wykorzystaniem algorytmu euklidesa, wykonuje dzielenie
+podczas obliczania modulo, na każdym etapie pętli wewnątrz algorytmu \ref{alg:inverse}.
+To czyni ją najdroższą operacją na ciele, znacznie kosztowniejszą niż operacja mnożenia modularnego.
+\par
+Aby przyśpieszyć obliczenia, zastosowałem technikę obliczania wielu odwrotności za jednym razem,
+znaną jako \textit{Montgomery Trick} \cite{Montgomery1987}.
+\par
+Idea stojąca za tym sposobem, jest następująca.
+Niech $x_1, \cdots ,x_n$ będą elementami, których odwrotność chcemy policzyć.
+Na początku obliczamy tablicę elementów, w postaci $a_1 = x_1, a_2 = x_1\cdot x_2 , \cdots, a_n = x_1 \cdots x_n$.
+Następnie, obliczamy odwrotność ostatniego elementu $a_n$ za pomocą jednej operacji odwrotności w ciele.
+Teraz, aby policzyć odwrotność elementu $x_n$ wystarczy wykonać jedynie operację mnożenia
+$b_n = a_{n-1} \cdot a_{n}^{-1}$. Kolejne elementy obliczamy analogicznie, za pomocą mnożenia:
+$b_{n-1} = a_{n-2} \cdot b_{n}$.
+\textit{Montgomery trick} pozwala na zamianę:
+$$
+    nO = O + 3(n - 1)M
+$$
+\par
+Sposób implementacji tej tej metody wymagał podjęcia paru decyzji.
+Pierwszym problemem który pojawia się w metodzie Montgomerego,
+jest konieczność
+obliczania iteracji dla wielu punktów jednocześnie.
+\par
+Jednym ze sposobów by tego dokonać,
+jest zsynchronizowanie wielu wątków w ramach bloku obliczeniowego, a następnie przekazanie
+jednemu z nich, za pomocą pamięci współdzielonej, wszystkich liczb do obliczenia odwrotności.
+Następnie, wątek zwracałby obliczone odwrotności za pomocą pamięci współdzielonej.
+Jak zauważono w pracy \cite{Boss2015}, takie podejście nie jest optymalne w przypadku GPU.
+Wymagałoby to sporo synchronizacji pomiędzy wątkami, oraz sporej ilości zapisów i odczytów
+z pamięci współdzielonej, która pomimo bycia znacznie szybszą niż pamięć globalna, nie jest tak
+szybka jak prywatna pamięc w postaci rejestrów. Dodatkowo, z racji, że tylko jeden
+wątek oblicza odwrotności, pozostałe muszą bezczynnie czekać.
+\par
+Dlatego sposobem, który zastosowałem jest obliczanie wielu odwrotności
+w ramach jednego wątku. Oznacza to, że każdy wątek zamiast przetwarzać tylko jeden punkt startowy,
+dostaje ich $n$ na początku działania programu.
+\par
+\textit{Naiwne} podejście polegałoby na przekazaniu każdemu z wątków $n$ punktów startowych,
+i oczekiwanie aż znajdzie dla każdego punktu startowego odpowiadający mu punkt wyróźniony. Taki sposób powoduje,
+że bardzo szybko zaczynamy tracić zyski z metody Montgomerego, a nawet zaczynamy działać wolniej,
+z powodu dodatkowych obliczeń, których nie wykorzystujemy.
+Wynika to z faktu,
+że po znalezieniu $i$ punktów, zysk z metody jest postaci:
+$$
+    (n-i)O = O + 3(n-i)M + 3(i)M
+$$
+Gdzie $3(i)M$ to mnożenia, które nie przyczyniają się do znalezienia nowych punktów wyróźnionych, więc należy je traktować jako niepotrzebne spowolnienie.
+\par
+W celu rozwiązania tego problemu, zastosowałem okienkowanie obliczeń w tablicy o stałym rozmiarze $m$.
+Sposób ten wymaga, aby każda wątek otrzymał $n > m$ punktów startowych w wyznaczonym dla niego miejscu w pamięci globalnej.
+Im większa różnica $n-m$ tym lepszy
+stosunek czasu obliczeń do narzutu czasowego związanego ze startem programu.
+\par
+Na początku działania wątku, ładujemy do tablicy okna kolejne $m$ punktów startowych z pamięci globalnej.
+Następnie w pętli obliczamy odwrotności wymagane dla operacji dodawnia punktów i przeprowadzamy dodawanie. Tym sposobem,
+w jednym kroku pętli, wykonujemy jedną iterację algorytmu Rho Pollarda dla $m$ punktów. Na samym końcu każdego kroku pętli,
+sprawdzamy czy każdy z nowo obliczonych punktów, czy jest punktem wyróźnionym. Jeżeli tak,
+znaleziony punkt zapisujemy na pierwszym wolnym miejscu w pamięci globalnej, a na jego miejsce ładujemy do tablicy
+okna kolejny punkt startowy.
+Dzięki temu, przez większość czasu obliczeń, wykorzystujemy pełny zysk z metody Montgomerego.
+\par
+Jeżeli dodatkowo zastosujemy flagę, która kończy obliczenia wszystkich wątków w bloku, gdy pierwszy wątek,
+znajdzie $n-m$ punktów wyróźnionych, to otrzymujemy maksymalny poziom wydajności w ciągu całej fali obliczeń.
+Efekt ten jest dokładniej opisany w części poświęconej problemowi \textit{tailing effect}.
+\par
+Wzrost wydajności mierzony w ilości operacji dodawania punktów na krzywej na sekundę, który udało mi się osiągnąć, wynosi około 90\% względem wersji, która nie wykorzystuje
+metody Montgomerego.
 
-\subsection{Tailing effect}
-\subsubsection{Rozmiar bloku}
-\subsubsection{Uruchomienia asynchroniczne}
+
+
+
+% schemat
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{img/okienkowanie_3.png}
+    \caption{Schemat działania pojedyńczego kroku w pętli z wykorzystaniem okienkowania}
+    \label{fig:windowing}
+\end{figure}
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Wielkość okna} & \textbf{Średnia ilość operacji na sekundę} & \textbf{Wzrost wydajności (\%)} \\ \hline
+        Brak                   & 1000                                       & 0\%                             \\ \hline
+        5                      & 1500                                       & 25\%                            \\ \hline
+        10                     & 1700                                       & 30\%                            \\ \hline
+        15                     & 1900                                       & 35\%                            \\ \hline
+        20                     & 2100                                       & 40\%                            \\ \hline
+    \end{tabular}
+    \caption{Porównanie algorytmu z metodą Montgomery DANE NA RAZIE W FORMIE PLACEHOLDERA, NIE ZDAZYLEM PRZESZUKAC LOGOW W POSZUKIWANIU DOKLADNYCH WYNIKOW, ale coś około 96 milionów vs 56 milionów dla okna rozmiaru 10}
+    \label{tab:comparison}
+\end{table}
+
+
+\subsection{Tail effect}
+Tail Effect to zjawisko, które polega na nierównomiernym obciążeniu wątków na GPU.
+W przypadku równoległej wersji algorytmu Rho Pollarda, to zjawisko jest szczególnie widoczne,
+ze względu na losowość funkcji błądzenia po krzywej.
+Wątki znajdują punkty wyróżnione w różnym, losowym czasie.
+\par
+Po znalezieniu punktu wyróżnionego, wątek musi zaczekać, na zakończenie pracy wszystkich
+pozostałych wątków w ramach jednego bloku.
+To powoduje, że tylko przez krótki czas są wykorzystywane wszystkie zasoby GPU.
+\par
+Jednym ze sposobów na zmniejszenie tego efektu, jest wydłużenie czasu pracy każdego z wątków poprzez zwiększenie ilości punktów wyróżnionych,
+które musi znaleźć. Dzięki temu spada prawdopodobieństwo, że zakończy on swoją pracę znacznie wcześniej niż pozostałe wątki w bloku.
+Zastosowanie metody z oknem, opisanej w poprzedniej sekcji, pozwala na znacznie lepszą utylizację zasobów przez większość
+czasu obliczeń.
+\par
+Rys \ref{fig:tail_effect_1} oraz \ref{fig:tail_effect_3} przedstawiają czas pracy każdego z wątków w bloku, w trakcie jednej fali obliczeń.
+W trakcie testu, każdy z wątków poszukiwał punktów wyróżnionych z 17 zerami na końcu współrzędnej $x$. Widoczne jest
+znaczne lepsze wykorzystanie zasobów GPU w przypadku, gdy każdy z wątków musi znaleźć 3 punkty wyróżnione przed zakończeniem pracy.
+Zmniejsza to wplyw anomalii, gdy punkt wyróżniony jest znajdowany znacznie wcześniej lub później niż wynika z wartości oczekiwanej.
+
+% wykres
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{img/tailing_effect_single_17.png}
+    \caption{Tail effect widoczny na małej grupie wątków. Wątki kończą pracę po znalezieniu jednego punktu wyróżnionego.
+        Większość czasu obliczeń, jest wykorzystywana tylko przez małą liczbę wątków.}
+    \label{fig:tail_effect_1}
+\end{figure}
+
+% wykres
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{img/tailing_effect_3_17.png}
+    \caption{Tail effect widoczny na małej grupie wątków. Wątki kończą pracę po znalezieniu 3 punktów wyróżnionych.
+        Widoczne jest znacznie lepsze wykorzystanie zasobów GPU, przez większość czasu obliczeń.}
+    \label{fig:tail_effect_3}
+\end{figure}
+
+\par
+Aby jeszcze bardziej zniwelować efekt, zastosowałem specjalną flagę w pamięci współdzielonej, która pozwala zakończyć obliczenia wszystkich wątków w bloku,
+po tym, jak pierwszy z nich znajdzie wszystkie punkty wyróżnione. Pozwala to zwolnić miejsce na kolejny blok
+i pozwolić na załadowanie nowych danych do obliczeń, gdy tylko poziom wykorzystania zasobów zacznie spadać.
+Karty graficzne z architekturą Turing,
+pozwalają na kolejkowanie wielu uruchomień kernel'a wykorzystując mechanizm strumieni CUDA.
+Dzięki wykorzystaniu strumieni, scheduler CUDA
+może uruchamiać kolejne bloki obliczeń z kolejki zadań, gdy tylko
+zwolni się miejsce na kolejny blok, zamiast czekać ze startem na zakończenie poprzedniego kernel'a \cite{cuda}.
+\par
+Rys \ref{fig:tail_effect_3} przedstawia wykres sumy znalezionych punków od czasu przy zakolejkowaniu dwóch kernel'i w odzielnych strumieniach.
+Widoczne jest przejmowanie przez strumień Stream 2 wolnych zasobów, zwalnianych przez Stream 1.
+Wypłaszczenie krzywej sumy punktów pod koniec pracy każdego ze strumieni, jest
+efektem ogona, spowodowanym przez nierównomierny czas pracy na poziomie bloków.
+Jednak dopóki jest zapewniona zastępowalność bloków na SM, efekt nie wpływa na wydajność obliczeń.
+
+
+
+% wykres
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\textwidth]{img/streams.png}
+    \caption{Suma znalezionych punktów wyróżnionych z podziałem na strumienie,
+        gdzie każdy z wątków szukał 10 punktów wyróżnionych z 22 zerami na końcu współrzędnej $x$.
+        Zastosowano flagę kończenia obliczeń wszystkich wątków w bloku.
+        Widoczne jest przejmowanie przez strumień Stream 2 wolnych zasobów, zwalnianych przez Stream 1.
+    }
+    \label{fig:tail_effect_3}
+\end{figure}
 
 \subsection{Serwer}
+Główny cel serwera centralnego w równoległej wersji algorytmu Rho Pollarda, sprowadza się do
+przechowywania obliczonych punktów wyróżnionych oraz poszukiwania wśród nich kolizji.
+W mojej implementacji, jego zadania zostały rozszczerzone o generowanie punktów startowych
+oraz wstępną generację punktów niezbędnych do spaceru losowego w wersji \textit{addition walk}.
+\par
+Na samym początku działania systemu, serwer startuje odpowiednią ilość
+klientów, poprzez uruchamianie w osobnych wątkach funkcji \textit{GPUWorker},
+w ilości na tyle dużej, aby wysycić zasoby GPU.
+Ponieważ kod działający na GPU został skompilowany z flagą dla kompilatora NVCC \textit{--default-stream per-thread},
+każdy z klientów działających w osobnym wątku, tworzy własny strumień CUDA, co pozwala na ich kolejkowanie uruchomionych kerneli po stronie GPU.
+\par
+Klienci komunikuje się z serwerem za pomocą dwóch asynchronicznych kolejek FIFO.
+Pierwsza z nich służy do przekazywania punktów startowych z serwera do klientów, a druga do przekazywania
+znalezionych punktów wyróżnionych przez klientów do serwera. Taka centralizacja
+generowania punktów startowych, wynika z problemów z bibliotekami SageMath,
+podczas uruchamiania ich kodu w wielu wątkach jednocześnie.
+Do uruchamiania skompilowanego kodu dla GPU, wykorzystałem
+bibliotekę \textit{Ctypes}, która umożliwia wywoływanie funkcji napisanych w języku C z poziomu Pythona.
+\par
+Serwer w celu przechowywania punktów otrzymanych od klientów, wykorzystuje
+zwykły słownik dostępny w języku Python, który jest odpowiednikiem hash-mapy.
+Punkty są przechowywane w formie: \textit{(x,y): seed}, gdzie \textit{seed} oznacza
+ziarno z jakiego został wygenerowany punkt startowy, który doprowadził do znalezienia punktu wyróżnionego.
+Dzięki temu, w razie kolizji, serwer jest w stanie odtworzyć punkt startowy, a następnie wykonać cały spacer losowy, który doprowadził do danego punktu.
+Jest to szczególnie istotne, ponieważ po stronie GPU nie są zliczane parametry $a$ oraz $b$ niezbędne do obliczenia
+logarytmu dyskretnego
+\subsection*{Generacja punktów startowych}
+DO UZUPEŁNIENIA
+stosuję metodę generacji za pomocą MD5 modulo rząd ciała
 
-\subsubsection{GPUWorker}
-
-\subsubsection{Komunikacja}
+\subsubsection{Kolizje}
+DO UZUPEŁNIENIA
+Opisać co się dzieje w przypadku kolizji, jak odtwarzana jest sciezka bladzenia
+przypomniec jak z tego obliczyc logarytm dyskretyn -> ALGORYTM RHO POLLARD w sekcji teorii bedzie miał wyjasnione 
 
 \section{Wyniki}
 
+DO UZUPELNIENIA
+
 \subsection{Dalsze usprawnienia}
 Redukcja berreta
+Zastosowanie pamięci do tekstur
 
 \subsection{Porównanie z innymi pracami}
+
+DO UZUPELNIENIA

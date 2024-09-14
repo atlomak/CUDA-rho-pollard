@@ -380,7 +380,7 @@
         \ifnum \pdf@strcmp{\ThesisType}{Raport} = 0
         \begin{center}
             \LARGE
-            Raport z postępu pracowni dyplomowej
+            Praca dyplomowa inżynierska
         \end{center}
         \fi
         \ifnum \pdf@strcmp{\ThesisType}{Engineer} = 0
