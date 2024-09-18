@@ -1,5 +1,5 @@
-#include "bignum.cu"
-#include "bn_ec_point_ops.cu"
+#include "bignum.cuh"
+#include "bn_ec_point_ops.cuh"
 #include "utils.cuh"
 
 __global__ __launch_bounds__(512, 2) void ker_add_points(EC_parameters *parameters, int32_t instances, EC_point *points)
@@ -56,8 +56,6 @@ void test_adding_points(EC_point *points, int32_t instances, EC_parameters *para
 {
     EC_point *gpuPoints = nullptr;
     EC_parameters *gpuParameters = nullptr;
-
-    cudaError_t err;
 
     cudaMalloc(&gpuPoints, instances * 2 * sizeof(EC_point));
     cudaCheckErrors("Failed to allocate device memory for points");

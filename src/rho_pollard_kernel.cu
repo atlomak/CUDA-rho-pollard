@@ -1,5 +1,5 @@
-#include "bignum.cu"
-#include "bn_ec_point_ops.cu"
+#include "bignum.cuh"
+#include "bn_ec_point_ops.cuh"
 #include "utils.cuh"
 
 #define PRECOMPUTED_POINTS 1024
