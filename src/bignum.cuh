@@ -98,8 +98,6 @@ enum
 __device__ void bignum_init(struct bn *n);
 __device__ void bignum_from_int(struct bn *n, DTYPE_TMP i);
 __device__ int bignum_to_int(struct bn *n);
-__device__ void bignum_from_string(struct bn *n, char *str, int nbytes);
-__device__ void bignum_to_string(struct bn *n, char *str, int maxsize);
 
 /* Basic arithmetic operations: */
 __device__ void bignum_add(struct bn *a, struct bn *b, struct bn *c); /* c = a + b */
@@ -109,9 +107,12 @@ __device__ void bignum_div(struct bn *a, struct bn *b, struct bn *c); /* c = a /
 __device__ void bignum_mod(struct bn *a, struct bn *b, struct bn *c); /* c = a % b */
 __device__ void bignum_divmod(struct bn *a, struct bn *b, struct bn *c, struct bn *d); /* c = a/b, d = a%b */
 
+/* Specialized multiplication for small_bn */
+__device__ void bignum_assign_fsmall(struct bn *dst, struct small_bn *src);
+__device__ void bignum_assign_small(struct small_bn *dst, struct small_bn *src);
+
 /* Number theory arithmetic operations: */
-__device__ int bignum_modinv(struct bn *a, struct bn *b, struct bn *c);
-__device__ void ext_gcp(bn *a, bn *b, bn *x, bn *y);
+__device__ void bignum_modinv(struct bn *a, struct bn *b, struct bn *c);
 
 /* Bitwise operations: */
 __device__ void bignum_and(struct bn *a, struct bn *b, struct bn *c); /* c = a & b */
@@ -125,8 +126,6 @@ __device__ int bignum_cmp(struct bn *a, struct bn *b); /* Compare: returns LARGE
 __device__ int bignum_is_zero(struct bn *n); /* For comparison with zero */
 __device__ void bignum_inc(struct bn *n); /* Increment: add one to n */
 __device__ void bignum_dec(struct bn *n); /* Decrement: subtract one from n */
-__device__ void bignum_pow(struct bn *a, struct bn *b, struct bn *c); /* Calculate a^b -- e.g. 2^10 => 1024 */
-__device__ void bignum_isqrt(struct bn *a, struct bn *b); /* Integer square root -- e.g. isqrt(5) => 2*/
 __device__ void bignum_assign(struct bn *dst, struct bn *src); /* Copy src into dst -- dst := src */
 
 

@@ -69,7 +69,7 @@ __device__ void bignum_from_int(struct bn *n, DTYPE_TMP i)
 #endif
 }
 
-__device__ int bignum_modinv(struct bn *a, struct bn *b, struct bn *c)
+__device__ void bignum_modinv(struct bn *a, struct bn *b, struct bn *c)
 {
     require(a, "a is null");
     require(b, "b is null");
@@ -101,7 +101,6 @@ __device__ int bignum_modinv(struct bn *a, struct bn *b, struct bn *c)
         bn t;
         bignum_assign(&t, &temp_b);
 
-        bignum_init(&temp);
         bignum_mod(&temp_a, &temp_b, &temp);
         bignum_assign(&temp_b, &temp);
 
@@ -116,7 +115,6 @@ __device__ int bignum_modinv(struct bn *a, struct bn *b, struct bn *c)
 
         if (x0_sign != x1_sign)
         {
-            bignum_init(&x0);
             bignum_add(&x1, &qx0, &x0);
             x0_sign = x1_sign;
         }
@@ -144,41 +142,6 @@ __device__ int bignum_modinv(struct bn *a, struct bn *b, struct bn *c)
     {
         bignum_assign(c, &x1);
     }
-}
-
-__device__ void ext_gcp(bn *a, bn *b, bn *x, bn *y)
-{
-    bn temp_a, temp_b, temp, qn, new_r, un_prev, vn_prev, un_cur, vn_cur, un_new, vn_new;
-
-    bignum_assign(&temp_a, a);
-    bignum_assign(&temp_b, b);
-
-    bignum_from_int(&un_prev, 1);
-    bignum_from_int(&vn_prev, 0);
-    bignum_from_int(&un_cur, 0);
-    bignum_from_int(&vn_cur, 1);
-
-    while (!bignum_is_zero(&temp_b))
-    {
-        bignum_div(&temp_a, &temp_b, &qn);
-
-        bignum_assign(&temp_a, &temp_b);
-        bignum_assign(&temp_b, &new_r);
-
-        bignum_mul(&qn, &un_cur, &temp);
-        bignum_sub(&un_prev, &temp, &un_new);
-
-        bignum_mul(&qn, &vn_cur, &temp);
-        bignum_sub(&vn_prev, &temp, &vn_new);
-
-        bignum_assign(&un_prev, &un_cur);
-        bignum_assign(&vn_prev, &vn_cur);
-        bignum_assign(&un_cur, &un_new);
-        bignum_assign(&vn_cur, &vn_new);
-    }
-
-    bignum_assign(x, &un_prev);
-    bignum_assign(y, &vn_prev);
 }
 
 
