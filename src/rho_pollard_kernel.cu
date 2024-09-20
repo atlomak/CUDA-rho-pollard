@@ -3,7 +3,7 @@
 #include "utils.cuh"
 
 #define PRECOMPUTED_POINTS 1024
-#define BATCH_SIZE 10
+#define BATCH_SIZE 6
 
 // #define LOGGING 1
 
@@ -18,12 +18,7 @@ __device__ uint32_t is_distinguish(bn *x, uint32_t zeros_count)
     return zeros == 0;
 }
 
-__device__ uint32_t map_to_index(bn *x, bn *mask)
-{
-    bn temp;
-    bignum_and(x, mask, &temp);
-    return bignum_to_int(&temp);
-}
+__device__ uint32_t map_to_index(bn *x) { return (x->array[0] & (PRECOMPUTED_POINTS - 1)); }
 
 typedef struct
 {
@@ -38,7 +33,6 @@ typedef struct
 __global__ __launch_bounds__(512, 2) void rho_pollard(rho_pollard_args args, uint32_t stream)
 {
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-    uint32_t warp_id = threadIdx.x / 32;
 
     if (idx >= args.instances)
     {
@@ -58,13 +52,8 @@ __global__ __launch_bounds__(512, 2) void rho_pollard(rho_pollard_args args, uin
 
     __syncthreads();
 
-    bn mask_precmp;
-    bignum_from_int(&mask_precmp, PRECOMPUTED_POINTS - 1);
-
     EC_point W[BATCH_SIZE], R[BATCH_SIZE];
-    bn Pmod;
-
-    bignum_assign(&Pmod, &args.parameters->Pmod);
+    bn Pmod = args.parameters->Pmod;
 
     for (int i = 0; i < BATCH_SIZE; i++)
     {
@@ -84,7 +73,7 @@ __global__ __launch_bounds__(512, 2) void rho_pollard(rho_pollard_args args, uin
 #pragma unroll 4
         for (int i = 0; i < BATCH_SIZE; i++)
         {
-            uint32_t index = map_to_index(&W[i].x, &mask_precmp);
+            uint32_t index = map_to_index(&W[i].x);
             bignum_assign_fsmall(&R[i].x, &SMEMprecomputed[index].x);
             bignum_assign_fsmall(&R[i].y, &SMEMprecomputed[index].y);
 
@@ -122,6 +111,7 @@ __global__ __launch_bounds__(512, 2) void rho_pollard(rho_pollard_args args, uin
             bignum_mod(&temp, &Pmod, &x);
         }
 
+#pragma unroll 4
         for (int i = 0; i < BATCH_SIZE; i++)
         {
             add_points(&W[i], &R[i], &W[i], &Pmod, &b[i]);
