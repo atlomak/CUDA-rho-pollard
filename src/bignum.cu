@@ -1,23 +1,3 @@
-/*
-
-Big number library - arithmetic on multiple-precision unsigned integers.
-
-This library is an implementation of arithmetic on arbitrarily large integers.
-
-The difference between this and other implementations, is that the data structure
-has optimal memory utilization (i.e. a 1024 bit integer takes up 128 bytes RAM),
-and all memory is allocated statically: no dynamic allocation for better or worse.
-
-Primary goals are correctness, clarity of code and clean, portable implementation.
-Secondary goal is a memory footprint small enough to make it suitable for use in
-embedded applications.
-
-
-The current state is correct functionality and adequate performance.
-There may well be room for performance-optimizations and improvements.
-
-*/
-
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -551,7 +531,7 @@ __device__ void bignum_assign_small(struct small_bn *dst, struct small_bn *src)
 }
 
 /* Private / Static functions. */
-__device__ static void _rshift_word(struct bn *a, int nwords)
+__device__ __forceinline__ static void _rshift_word(struct bn *a, int nwords)
 {
     /* Naive method: */
     require(a, "a is null");
@@ -578,7 +558,7 @@ __device__ static void _rshift_word(struct bn *a, int nwords)
 }
 
 
-__device__ static void _lshift_word(struct bn *a, int nwords)
+__device__ __forceinline__ static void _lshift_word(struct bn *a, int nwords)
 {
     require(a, "a is null");
     require(nwords >= 0, "no negative shifts");
@@ -597,7 +577,7 @@ __device__ static void _lshift_word(struct bn *a, int nwords)
 }
 
 
-__device__ static void _lshift_one_bit(struct bn *a)
+__device__ __forceinline__ static void _lshift_one_bit(struct bn *a)
 {
     require(a, "a is null");
 
@@ -610,7 +590,7 @@ __device__ static void _lshift_one_bit(struct bn *a)
 }
 
 
-__device__ static void _rshift_one_bit(struct bn *a)
+__device__ __forceinline__ static void _rshift_one_bit(struct bn *a)
 {
     require(a, "a is null");
 
