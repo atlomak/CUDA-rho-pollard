@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include "bignum.cuh"
 
-// Struktura reprezentująca punkt na krzywej eliptycznej
 typedef struct
 {
     bn x;
@@ -13,13 +12,15 @@ typedef struct
     uint32_t is_distinguish;
 } EC_point;
 
+// Struct for storing precomputed points with smaller number representation (half the size of standard representation).
+// Before performing any arthmetic operations at ECC79, it is necessary to convert
+// the points to the EC_point struct.
 typedef struct
 {
     small_bn x;
     small_bn y;
 } PCMP_point;
 
-// Struktura przechowująca parametry krzywej eliptycznej
 typedef struct
 {
     bn Pmod;
