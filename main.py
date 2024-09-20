@@ -1,16 +1,15 @@
+import random
 from sage.all import inverse_mod
-from hashlib import md5
 from src.python.utils import is_distinguish
 from queue import Queue
 from threading import Thread
-import time
 
 from src.python.elliptic_curve import E, P, Q, curve_order, field_order
 from src.python.gpu_worker import GPUworker, StartingParameters
 
 PRECOMPUTED_POINTS = 1024
 INSTANCES = 5120
-N = 14
+N = 24
 ZEROS_COUNT = 20
 
 
@@ -24,11 +23,9 @@ class PrecomputedPoint:
 def generate_starting_points(instances, zeros_count):
     distnguish_points = []
     starting_points = []
-    m = md5()
-    m.update(str(time.time()).encode("utf-8"))
     i = 0
     while i < instances:
-        seed = int.from_bytes(m.digest()) % field_order
+        seed = int.from_bytes(random.randbytes(10), "big") % curve_order
         A = P * seed
         x = int(A[0])
         y = int(A[1])
@@ -37,22 +34,17 @@ def generate_starting_points(instances, zeros_count):
             starting_points.append((x, y, seed))
         else:
             distnguish_points.append((x, y, seed))
-        m.update(b"1")
     return starting_points, distnguish_points
 
 
 def generate_precomputed_points(precomputed_points_size) -> list[PrecomputedPoint]:
     points = []
-    m = md5()
-    m.update(str(time.time()).encode("utf-8"))
     for i in range(precomputed_points_size):
-        a = int.from_bytes(m.digest()) % curve_order
+        a = int.from_bytes(random.randbytes(10), "big") % curve_order
         A = P * a
-        m.update(b"1")
 
-        b = int.from_bytes(m.digest()) % curve_order
+        b = int.from_bytes(random.randbytes(10), "big") % curve_order
         B = Q * b
-        m.update(b"1")
 
         R = A + B
         points.append(PrecomputedPoint(R, a, b))
