@@ -1,17 +1,68 @@
-\newpage % Zaleca się otwieranie rozdziału od nowej strony.
 \section{Wstęp teoretyczny}
 
-
 \subsection{Procesor graficzny}
-DO UZUPEŁNIENIA
-GŁÓWNIE SŁOWNICTWO oraz architektura SIMD
-SM - streaming multiprocesor
-BLOCK - grupa wątków, najbardziej granularny sposób rozpoczynania obliczeń
-wątek - pojedyncza logiczna jednostka obliczeniowa, wykonuje instrukcje w grupach po 32
-(rozgałęzienia powodują sekwencyjność w tej grupie 32) 
-good practice: brak rozgałęzień w kodzie, jedna instrukcja, wiele danych
-
-Hierarchia pamięci
+Procesory graficzne są specjalnym rodzajem procesorów,
+pierwotnie stworzonych do akceleracji obliczeń graficznych.
+Obliczenia te charakteryzują się dużą liczbą względnie prostych, podobnych operacji,
+które mogą być przeprowadzone równolegle.
+Taki model obliczeń nosi nazwę SIMD (Single Instruction Multiple Data)
+i oznacza równoległe wykonywanie tej samej operacji dla wielu różnych danych wejściowych.
+\par
+Współczesne karty graficzne są zaprojektowanie do wykorzystania
+ich możliwości równoległych obliczeń w znacznie szerszym obszarze niż
+pierwotny cel akceleracji grafiki komputerowej.
+Technologie \textit{OpenCL} oraz \textit{CUDA} umożliwiają
+programowanie GPGPU -\textit{general purpose GPU} w 
+dziedzinach takich jak obliczenia naukowe, machine learning oraz kryptografia.
+\par
+W mojej pracy, w celu przeprowadzenia ataku na krzywą eliptyczną, wykorzystałem
+algorytm \textit{Rho Pollard'a}, który z niewielkimi modyfikacjami można bardzo skutecznie wykonywać
+równolegle. Z tego powodu wykorzystanie GPU do kryptoanalizy, pozwala znacznie przyśpieszyć czas
+obliczeń. W celu stworzenia programu na GPU wykorzystałem technologię Nvidia CUDA, głównie ze względu
+na znacznie lepiej rozwinięty ekosystem oraz dostępność materiałów w internecie.
+Standard OpenCL w przeciwieństwie do CUDA, jest \textit{open-source} oraz może zostać wykorzystany do programowania
+kart graficznych innych producentów. Niestety jest zauważalnie
+gorzej wspierany w przypadku kart graficznych Nvidia.
+\par
+\subsubsection{Model programowania CUDA}
+Program napisany w CUDA, składa się z jednego lub więcej \textit{kernel'a} - funkcji programu,
+która będzie się wykonywać równolegle na GPU, na każdym z uruchomionych wątków.
+Wątki są grupowane w \textit{bloki}, które mogą się składać z 1 do 1024 wątków w przypadku \textit{CUDA 7.5} \cite{CudaDeveloper}.
+Następnie bloki są uruchamiane na dostępnych \b{SM} - \textit{streaming multiprocessor}.
+Karty graficzne Nvidia składają się zazwyczaj z kilkunastu SM, które mogą równocześnie uruchomić wiele
+bloków, co pozwala na równoczesne wykonywanie kilkuset wątków.
+Wątki w ramach jednego bloku dzielą pamięć współdzieloną \textit{shared memory} oraz wykonują się równocześnie.
+Możliwe jest uruchomienie znacznie większej ilości bloków, niż może się jednocześnie wykonywać na dostępnych SM.
+W takiej sytuacji niektóre bloki będą oczekiwać na wolne zasoby aż poprzednie nie zakończą pracy.
+Dodatkowo, wątki w ramach bloku wykonują tą samą instrukcję w grupach po 32,
+nazywanych \textit{warp'ami}.
+W przypadku architektury SIMD ważne jest unikanie długich segmentów
+warunkowych, ponieważ skutkuje to sekwencyjnymi obliczeniami.
+W sytuacji gdy następuje rozgałęzienie kodu - \textit{branching},
+część wątków w warp'ie musi czekać na pozostałe, skutkując sekwencyjnym wykonywaniem kodu.
+Jest to szczególnie istotne dla wydajności działania programu na GPU.
+\subsubsection{Hierarchia pamięci}
+Kolejnym ważnym elementem który mocno wpływa na wydajność
+programu, jest odpowiedni dostęp do pamięci.
+Tak samo jak w zwykłym procesorze, GPU ma kilka warstw
+pamięci które różnią się rozmiarem oraz czasem dostępu.
+W CUDA można wyróżnić 3 najważniejsze warstwy pamięci:
+\begin{itemize}
+    \item Rejestry - najszybszy rodzaj pamięci, dostępny w ramach pojedynczego wątku.
+    Ilość rejestrów dla każdego wątku jest jednak mocno ograniczona w przypadku
+    uruchomienia wielu wątków równocześnie. Jeżeli program używa wiecej rejestrów niż jest dostępne,
+    może wystąpić \textit{register spilling}, który wprowadza znaczne opóźnienia.
+    \item \textit{Shared memory} - szybka pamięć współdzielona, która jest wspólna dla wątków w danym bloku. Jest ona ograniczona
+    przez ilość pamięci w SM, na karcie graficznej z CUDA 7.5 jej rozmiar wynosi 64 KB \cite{CudaDeveloper}.
+    Stosowana jest w przypadku, gdy wiele wątków musi się ze sobą komunikować lub w celu cache'owania danych
+    i ograniczenia dostępu do znacznie wolniejszej pamięci globalnej.
+    Zbyt duży rozmiar wykorzystywanej pamięci współdzielonej ogranicza ilość bloków które mogą jednocześnie się
+    wykonywać na jednym SM.
+    \item \textit{Global memory} - pamięć globalna DRAM, najwolniejsza oraz największa ze wszystkich warstw. Wykorzystywana głównie w celu
+    komunikacji karty graficznej z procesorem, w celu przesyłania danych do obliczeń oraz zapisu wyników.
+\end{itemize}
+Dostępne są również dodatkowe rodzaje takie jak \textit{texture memory} oraz \textit{constant memory},
+które różnią się optymalnym sposobem dostępu, jednak nie są wykorzystywane w tej pracy.
 
 \subsection{Krzywe eliptyczne}
 Zakładając, że ciało $\mathbb{K}$ ma charakterystykę różną od 2 i 3,
