@@ -1,0 +1,35 @@
+\section{Porównanie wyników}
+
+Praca najbardziej zbliżona tematycznie do mojej to \textit{Solving prime-field 
+ECDLPs on GPUs with OpenCL} autorstwa Erika Bossa \cite{Boss2015}. W odróżnieniu 
+od mojej pracy, implementacja wykorzystana przez Bossa opierała się na technologii 
+OpenCL i była zoptymalizowana pod kątem kart graficznych AMD, jednak również 
+dotyczyła problemu ECDLP dla krzywych modulo liczby pierwsze z Certicom Challenge.
+
+Wyniki mojej pracy, zrealizowanej w 2024 roku przy użyciu karty NVIDIA GTX 2070 
+Super, pokazują wydajność na poziomie 87,7 milionów operacji na sekundę. Dla 
+porównania, praca Erika Bossa z 2015 roku osiągnęła wydajność 109 milionów iteracji 
+na sekundę dla karty AMD.
+Mimo niewielkiej różnicy, moja implementacja osiąga wynik, zbliżony rzędem wielkości do
+wyniku z tej pracy.
+Wyniki uzyskane przez Bossa wskazują, że obliczenie 
+problemu logarytmu dyskretnego dla krzywej 112-bitowej zajęłoby odpowiednio 19,81 
+lat dla karty AMD i 31,77 lat dla karty NVIDIA.
+
+Na podstawie wyników uzyskanych w mojej pracy, ekstrapolując wydajność z krzywej 
+79-bitowej, rozwiązanie ECDLP dla krzywej 112-bitowej zajęłoby około 32 lat na GPU 
+NVIDIA GTX 2070 Super. Więc w przypadku kart graficznych Nvidia, oba wyniki są prawie identyczne,
+pomimo nieznacznie nowszej wersji w przypadku mojej karty graficznej.
+
+$$
+\frac{\sqrt{\pi \cdot \frac{2^{112}}{2}}}{87.7 \cdot 10^{6} \cdot 3600 \cdot 24 \cdot 365} = 32.65
+$$
+
+Różnica może wynikać z większej optymalizacji pod konkretną kartę graficzną
+w przypadku pracy Boss'a oraz zastosowania techiki \textit{Negation Map} która pozwala przyśpieszyć czas obliczeń
+o współczynnik $\sqrt{2}$ \cite{Negation}.
+
+Wiele pozostałych prac o podobnej tematyce,
+wykorzystuje układy FPGA do obliczania logarytmu dyskretnego. Jednak zazwyczaj
+dotyczą one krzywej eliptycznej na ciele biarnym \cite{Wenger2014}. W takim przypadku, porównanie traci na wartości
+ponieważ na ciele binarnym można zastosować znacznie więcej optymalizacji przy operacjach na krzywej.

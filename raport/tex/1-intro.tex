@@ -1,0 +1,60 @@
+\newpage
+
+\newpage
+
+\section{Wprowadzenie}
+
+Wraz z rosnącą potrzebą zapewnienia poufności i integralności danych w systemach
+informatycznych, kryptografia stała się jednym z filarów współczesnych rozwiązań
+bezpieczeństwa. \textit{Kryptografia oparta na krzywych eliptycznych (ECC)} jest
+obecnie jednym z najważniejszych standardów w tej dziedzinie, oferując wysoki
+poziom bezpieczeństwa przy znacznie mniejszych rozmiarach kluczy w porównaniu
+do tradycyjnych algorytmów, takich jak RSA \cite[]{Ao2016,Barker2016}.
+Z tego powodu ECC znajduje szerokie zastosowanie w systemach o ograniczonych zasobach, takich
+jak urządzenia IoT czy urządzenia mobilne \cite[]{Thakur2022,Hammi2020}.
+
+Bezpieczeństwo ECC opiera się na trudności rozwiązania problemu logarytmu
+dyskretnego na krzywych eliptycznych. Jest to problem matematyczny, który w
+praktyce nie ma efektywnego rozwiązania w rozsądnym czasie przy użyciu
+współczesnych metod obliczeniowych. Do tej pory nie opracowano algorytmu
+zdolnego rozwiązać ten problem w czasie podwykładniczym, dlatego
+kryptoanaliza ECC wymaga dużych zasobów obliczeniowych.
+Z tego powodu, często wykorzystywane w tej roli są układy GPU \cite[]{Boss2015,Panetta2017,Bernstein2012},
+FPGA \cite[]{Wenger2014,Mane2011,FPGA2008,Majkowski2008}
+czy nawet konsole dla graczy \cite{Bos2010}.
+
+Gwałtowny rozwój kart graficznych (GPU) oraz technologii CUDA
+(Compute Unified Device Architecture) znacznie zwiększył możliwości
+przeprowadzania takich analiz. Choć rozwój ten był w dużej mierze napędzany
+zapotrzebowaniem związanym z uczeniem maszynowym, jego zastosowanie w
+innych dziedzinach, takich jak kryptoanaliza jest równie istotny.
+
+Karty graficzne, dzięki architekturze zoptymalizowanej do równoległych obliczeń,
+stały się narzędziem o kluczowym znaczeniu w dziedzinach wymagających intensywnego
+przetwarzania danych. Platforma CUDA, opracowana przez firmę NVIDIA, umożliwia
+wykorzystanie mocy obliczeniowej GPU do realizacji zadań takich jak
+implementacja algorytmów kryptograficznych oraz analiza ich odporności na ataki.
+CUDA pozwala na masywnie równoległe przetwarzanie danych, co ma kluczowe znaczenie
+w implementacji algorytmu Rho Pollarda, który w wersji równoległej, pozwala na efektywne
+wykorzystanie możliwości GPU.
+
+Chociaż GPU nie oferują wydajności i efektywności energetycznej 
+porównywalnej z dedykowanymi układami, takimi jak FPGA czy ASIC, ich dostępność 
+i stosunkowo niski koszt czyni je atrakcyjnym wyborem do obliczeń kryptograficznych. 
+W obliczu rosnącej mocy obliczeniowej GPU oraz ich szerokiej dostępności, ciągła 
+analiza odporności algorytmów kryptograficznych na ataki staje się jeszcze 
+ważniejszym elementem ich rozwoju.
+
+\subsection{Cel pracy}
+Celem tej pracy jest realizacja systemu korzystającego z koprocesora GPU,
+w celu przyśpieszenia obliczeń przy
+rozwiązywaniu problemu logarytmu dyskretnego.
+Implementacja została zoptymalizowana i dostosowana pod obliczenie logarytmu
+dyskretnego na krzywej eliptycznej ECCp-79, zaproponowanej w challange'u Certicom.
+\par
+Głównymi elementami stworzonego systemu
+jest program klienta wykonującego część algorytmu Rho Pollarda na karcie graficznej Nvidia
+z wykorzystaniem technologii CUDA i języka programowania CUDA C++,
+oraz program serwera działający na CPU, odpowiedzialny za zarządzanie klientami i zbieranie wyników.
+ Wyniki implementacji zostały porównane z innymi pracami
+których celem była kryptoanaliza ECC z wykorzystaniem akceleracji sprzętowej.

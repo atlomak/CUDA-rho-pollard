@@ -1,3 +1,7 @@
 {
-    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc",
+    "cSpell.words": [
+        "kryptosystemów",
+        "podwykładniczym"
+    ]
 }

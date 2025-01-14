@@ -48,7 +48,8 @@ na etapie implementacji.
 
 \subsection{Artmetyka na ciele $F_{p}$}
 \subsubsection{Reprezentacja długich liczb}
-Natywnie w języku C oraz CUDA C++ nie istnieje typ danych, który pozwalałby na przechowywanie liczb większych niż 64 bitowe.
+Natywnie w języku C oraz CUDA C++ nie istnieje typ danych,
+który pozwalałby na przechowywanie liczb większych niż 64 bitowe.
 W celu przeprowadzenia obliczeń na liczbach większych niż natywny rozmiar słowa bitowego,
 niezbędna jest odpowiednia implementacja nowych typów danych jak i samych operacji.
 W przypadku ciała $F_{p}$, gdzie $p$ jest liczbą pierwszą o rozmiarze 79 bit, potrzebujemy conajmniej 79 bitowego typu danych, do samego przechowywania liczb.
@@ -84,8 +85,8 @@ struct small_bn
 \end{lstlisting}
 \par
 Liczby w takiej postaci, przed przeprowadzeniem na nich operacji arytmetycznych, są ładowane z pamięci współdzielonej i z powrotem konwertowane na większy typ danych.
-Pozwala to zaoszczędzić $ 2 \cdot 32$ bitów na każdej liczbie, co w przypadku punktu składającego się z dwóch wspórzędnych
-daje oszczędnośc $2 \cdot 2 \cdot 32 = 128$ bitów na punkt znajdujący się w pamięci.
+Pozwala to zaoszczędzić $ 2 \cdot 32$ bitów na każdej liczbie, co w przypadku punktu składającego się z dwóch współrzędnych
+daje oszczędność $2 \cdot 2 \cdot 32 = 128$ bitów na punkt znajdujący się w pamięci.
 
 \subsubsection{Operacje na długich liczbach}
 Do operacji na długich liczbach, odpowiednio dostosowałem małą bibliotekę
@@ -204,22 +205,89 @@ efektywne zaimplementowanie dużej ilości takich instancji działających równ
 Całkowita wydajność mierzona w ilości operacji na krzywej na sekundę osiągnięta z jej wykorzystaniem była średnio 4.57 razy gorsza, niż
 z wykorzystaniem znacznie prostszej implementacji na bazie \textit{tiny-bignum-c}.
 
+\begin{lstlisting}[language=C, caption=Prototypy funkcji wykorzystywanych do operacji na długich liczbach]
+__device__ void bignum_init(struct bn *n);
+__device__ void bignum_from_int(struct bn *n, DTYPE_TMP i);
+__device__ int bignum_to_int(struct bn *n);
+
+__device__ void bignum_add(struct bn *a, struct bn *b, struct bn *c);
+__device__ void bignum_sub(struct bn *a, struct bn *b, struct bn *c);
+__device__ void bignum_mul(struct bn *a, struct bn *b, struct bn *c);
+__device__ void bignum_div(struct bn *a, struct bn *b, struct bn *c);
+__device__ void bignum_mod(struct bn *a, struct bn *b, struct bn *c);
+__device__ void bignum_divmod(
+    struct bn *a, struct bn *b, struct bn *c, struct bn *d
+);
+
+__device__ void bignum_assign_fsmall(struct bn *dst, struct small_bn *src);
+__device__ void bignum_assign_small(struct small_bn *dst, struct small_bn *src);
+
+__device__ void bignum_modinv(struct bn *a, struct bn *b, struct bn *c);
+
+__device__ void bignum_and(struct bn *a, struct bn *b, struct bn *c);
+__device__ void bignum_or(struct bn *a, struct bn *b, struct bn *c);
+__device__ void bignum_xor(struct bn *a, struct bn *b, struct bn *c);
+__device__ void bignum_lshift(struct bn *a, struct bn *b, int nbits);
+__device__ void bignum_rshift(struct bn *a, struct bn *b, int nbits);
+
+__device__ int bignum_cmp(struct bn *a, struct bn *b);
+__device__ int bignum_is_zero(struct bn *n);
+__device__ void bignum_inc(struct bn *n);
+__device__ void bignum_dec(struct bn *n);
+__device__ void bignum_assign(struct bn *dst, struct bn *src);
+\end{lstlisting}
 
 \subsection{Funkcja iterująca}
-DO UZUPEŁNIENIA - max 0.5 strony - ogólnie przypomnienie tego co było na początku w teorii, że addition walk jest lepszy dla SIMD niż klasyczna wersja rho pollarda
 
+Główna funkcja realizująca kolejne kroki algorytmu Rho Pollarda została 
+zaimplementowana jako kernel GPU. Na początku swojego działania kernel ładuje 
+punkty wstępnie obliczone do pamięci współdzielonej (\textit{shared memory}), 
+która pełni funkcję pamięci podręcznej.
+
+Pierwszy wątek każdego bloku inicjalizuje specjalną flagę \texttt{warp\_finished}, 
+ustawiając jej wartość na \texttt{0}. Flaga ta służy do kontrolowania zakończenia 
+pracy wszystkich wątków w ramach danego bloku. Po zakończeniu obliczeń przez 
+przynajmniej jeden wątek, flaga sygnalizuje konieczność zakończenia działania 
+pozostałych wątków w bloku. Szczegółowe omówienie mechanizmu działania tej flagi 
+znajduje się w sekcji poświęconej (\textit{tail effect}).
+
+Przykładowy fragment kodu ilustrujący inicjalizację pamięci współdzielonej oraz 
+obsługę flagi:
+
+\begin{lstlisting}[language=C, caption=Inicjalizacja pamięci współdzielonej i flagi \texttt{warp\_finished}]
+if (threadIdx.x == 0)
+{
+    printf("STREAM %d BLOCK %d started\n", stream, blockIdx.x);
+    for (int i = 0; i < PRECOMPUTED_POINTS; i++)
+    {
+        bignum_assign_small(&SMEMprecomputed[i].x, &args.precomputed[i].x);
+        bignum_assign_small(&SMEMprecomputed[i].y, &args.precomputed[i].y);
+    }
+    warp_finished = 0;
+}
+__syncthreads();
+\end{lstlisting}
 
 \subsubsection{Wstępnie obliczone punkty}
 Dostęp do wstępnie obliczonych punktów jest niezbędny w każdej iteracji \textit{Addition walk}.,
 dlatego ważne jest, aby je przechowywać w szybkiej pamięci. Wykorzystałem w tym celu pamięć współdzieloną \textit{shared memory}.
-W przeciwieństwie do znacznie większej pamięci globalnej, jest ona przechowywana bezpośrednio na SM \cite{CUDA_BOOK}.
-Ponieważ ilość punktów która zapewnia dostatecznie losowy spacer po krzywej eliptycznej jest stosunkowo niewielka \cite{Teske2000},
+W przeciwieństwie do znacznie większej pamięci globalnej, jest ona przechowywana bezpośrednio na SM \cite{Cheng2014,Jason2011}.
+Ponieważ ilość punktów która zapewnia dostatecznie losowy spacer po krzywej eliptycznej
+jest stosunkowo niewielka \cite{Teske2000},
 to rozmiar pamięci nie stanowi problemu. W docelowej wersji, przechowywane jest 128 punktów.
 \par
 Funkcja przydzielająca punkt wstępnie obliczony, na podstawie aktualnie sumowanego punktu została zaimplementowana
-poprzez operację AND maski bitowej ze współrzędną $x$ punktu.
+poprzez operację AND maski bitowej z pierwszymi 64 bitami współrzędnej
+$x$ punktu.
 W ten sposób, każdy punkt $W_i$ jest przyporządkowany do jednego z 128 wstępnie obliczonych punktów,
 a następnie punkty są dodawane do siebie.
+
+\begin{lstlisting}[language=C, caption=Funkcja przydzielająca punkt]
+#define PRECOMPUTED_POINTS 128
+__device__ uint32_t map_to_index(bn *x) {
+    return (x->array[0] & (PRECOMPUTED_POINTS - 1));
+}
+\end{lstlisting}
 
 
 \subsubsection{Punkty wyróżnione}
@@ -256,9 +324,6 @@ do funkcji kernel'a.
 Po znalezieniu punktu wyróźnionego, ustawiana jest specjalna flaga w strukturze przechowującej dane punktu oraz
 jest on zapisywany pod pierwsze wolne miejsce w pamięci globalnej.
 
-\subsubsection{Dodawanie punktów na krzywej eliptycznej}
-DO UZUPEŁNIENIA - max 0.5 strony większość jest poniżej.
-MOZE NAWET POMINĄC, w sumie to przepisanie tego co jest w teorii z wykorzystaniem zaimplementowanych prymitywów matematycznych???
 \subsubsection{Obliczanie odwrotnosci w seriach}
 Każda operacja dodawania punktów na krzywej eliptycznej we współrzędnych afinicznych, składa się z 3 mnożeń modularnych oraz jednej operacji obliczania odwrotności w ciele.
 Przeprowadza się również operację dodawania i odejmowania modularnego, jednak ich koszt obliczeniowy jest pomijalnie mały \cite{Blake2005}.
@@ -329,7 +394,7 @@ stosunek czasu obliczeń do narzutu czasowego związanego ze startem programu.
 Na początku działania wątku, ładujemy do tablicy okna kolejne $m$ punktów startowych z pamięci globalnej.
 Następnie w pętli obliczamy odwrotności wymagane dla operacji dodawnia punktów i przeprowadzamy dodawanie. Tym sposobem,
 w jednym kroku pętli, wykonujemy jedną iterację algorytmu Rho Pollarda dla $m$ punktów. Na samym końcu każdego kroku pętli,
-sprawdzamy czy każdy z nowo obliczonych punktów, czy jest punktem wyróźnionym. Jeżeli tak,
+sprawdzamy czy któryś z obliczonych punktów jest punktem wyróżnionym. Jeżeli tak,
 znaleziony punkt zapisujemy na pierwszym wolnym miejscu w pamięci globalnej, a na jego miejsce ładujemy do tablicy
 okna kolejny punkt startowy.
 Dzięki temu, przez większość czasu obliczeń, wykorzystujemy pełny zysk z metody Montgomerego.
@@ -337,36 +402,14 @@ Dzięki temu, przez większość czasu obliczeń, wykorzystujemy pełny zysk z m
 Jeżeli dodatkowo zastosujemy flagę, która kończy obliczenia wszystkich wątków w bloku, gdy pierwszy wątek,
 znajdzie $n-m$ punktów wyróźnionych, to otrzymujemy maksymalny poziom wydajności w ciągu całej fali obliczeń.
 Efekt ten jest dokładniej opisany w części poświęconej problemowi \textit{tailing effect}.
-\par
-Wzrost wydajności mierzony w ilości operacji dodawania punktów na krzywej na sekundę, który udało mi się osiągnąć, wynosi około 90\% względem wersji, która nie wykorzystuje
-metody Montgomerego.
-
-
-
 
 % schemat
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{img/okienkowanie_3.png}
-    \caption{Schemat działania pojedyńczego kroku w pętli z wykorzystaniem okienkowania}
+    \caption{Schemat działania pojedynczego kroku w pętli}
     \label{fig:windowing}
 \end{figure}
-
-\begin{table}[h!]
-    \centering
-    \begin{tabular}{|c|c|c|}
-        \hline
-        \textbf{Wielkość okna} & \textbf{Średnia ilość operacji na sekundę} & \textbf{Wzrost wydajności (\%)} \\ \hline
-        Brak                   & 1000                                       & 0\%                             \\ \hline
-        5                      & 1500                                       & 25\%                            \\ \hline
-        10                     & 1700                                       & 30\%                            \\ \hline
-        15                     & 1900                                       & 35\%                            \\ \hline
-        20                     & 2100                                       & 40\%                            \\ \hline
-    \end{tabular}
-    \caption{Porównanie algorytmu z metodą Montgomery DANE NA RAZIE W FORMIE PLACEHOLDERA, NIE ZDAZYLEM PRZESZUKAC LOGOW W POSZUKIWANIU DOKLADNYCH WYNIKOW, ale coś około 96 milionów vs 56 milionów dla okna rozmiaru 10}
-    \label{tab:comparison}
-\end{table}
-
 
 \subsection{Tail effect}
 Tail Effect to zjawisko, które polega na nierównomiernym obciążeniu wątków na GPU.
@@ -463,23 +506,119 @@ ziarno z jakiego został wygenerowany punkt startowy, który doprowadził do zna
 Dzięki temu, w razie kolizji, serwer jest w stanie odtworzyć punkt startowy, a następnie wykonać cały spacer losowy, który doprowadził do danego punktu.
 Jest to szczególnie istotne, ponieważ po stronie GPU nie są zliczane parametry $a$ oraz $b$ niezbędne do obliczenia
 logarytmu dyskretnego
-\subsection*{Generacja punktów startowych}
-DO UZUPEŁNIENIA
-stosuję metodę generacji za pomocą MD5 modulo rząd ciała
+
+\subsubsection*{Generacja punktów startowych}
+
+Początkowo punkty startowe były generowane za pomocą funkcji skrótu MD5 z operacją 
+modulo rzędu ciała, jednak bardziej wydajnym podejściem okazało się wykorzystanie 
+pakietu \texttt{random} z biblioteki standardowej języka Python. Pakiet ten 
+zapewnia wystarczającą losowość dla tego zastosowania, co umożliwia szybszą 
+i efektywną generację punktów.
+
+Proces generacji punktów startowych odbywa się wyłącznie po stronie serwera. 
+Wygenerowane punkty, wraz z odpowiadającymi im ziarnami (\textit{seed}), są 
+przekazywane do klienta. Jeśli jednak wygenerowany punkt startowy spełnia od razu 
+kryteria punktu wyróżnionego, zostaje przekazany bezpośrednio do puli punktów 
+wyróżnionych i nie zajmuje miejsca wśród punktów startowych. Dzięki temu zasoby 
+są lepiej wykorzystywane, a redundancja w obliczeniach jest zredukowana.
+
+Przykładowy kod generacji punktów w języku Python:
+
+\begin{lstlisting}[language=Python, caption=Generacja punktów startowych]
+def generate_starting_points(instances, zeros_count):
+    distinguish_points = []
+    starting_points = []
+    i = 0
+    while i < instances:
+        seed = int.from_bytes(random.randbytes(10), "big") % curve_order
+        A = P * seed
+        x = int(A[0])
+        y = int(A[1])
+        if not is_distinguish(x, zeros_count):
+            i += 1
+            starting_points.append((x, y, seed))
+        else:
+            distinguish_points.append((x, y, seed))
+    return starting_points, distinguish_points
+\end{lstlisting}
 
 \subsubsection{Kolizje}
-DO UZUPEŁNIENIA
-Opisać co się dzieje w przypadku kolizji, jak odtwarzana jest sciezka bladzenia
-przypomniec jak z tego obliczyc logarytm dyskretyn -> ALGORYTM RHO POLLARD w sekcji teorii bedzie miał wyjasnione 
 
-\section{Wyniki}
+W przypadku wykrycia kolizji serwer pobiera ziarna obu punktów i odtwarza 
+kolejne kroki algorytmu, które doprowadziły do ich znalezienia. W tym procesie 
+serwer oblicza wielokrotności punktów $P$ oraz $Q$, co pozwala na określenie 
+logarytmu dyskretnego. W rzadkich przypadkach, gdy obliczenie odwrotności modularnej 
+jest niemożliwe (np. mianownik wynosi $0$ w algorytmie Rho Pollarda), obliczenie 
+logarytmu dyskretnego może się nie powieść. 
 
-DO UZUPELNIENIA
+Jeżeli jednak obliczenia zakończą się sukcesem, serwer wyznacza logarytm 
+dyskretny i wysyła sygnał do zakończenia dalszych obliczeń. Wynik końcowy jest 
+następnie przekazywany na standardowe wyjście (\texttt{stdout}).
 
-\subsection{Dalsze usprawnienia}
-Redukcja berreta
-Zastosowanie pamięci do tekstur
+Przykładowa implementacja funkcji obliczającej współczynniki $a$ i $b$ w Pythonie:
 
-\subsection{Porównanie z innymi pracami}
+\begin{lstlisting}[language=Python, caption=Obliczanie współczynników $a$ i $b$]
+def calculate_ab(seed, precomputed_points: list[PrecomputedPoint]):
+    a_sum = seed
+    b_sum = 0
+    W = P * seed
+    while not is_distinguish(W[0], ZEROS_COUNT):
+        precomp_index = map_to_index(W[0])
+        precomputed = precomputed_points[precomp_index]
+        R = precomputed.point
+        a_sum = a_sum + precomputed.a
+        b_sum = b_sum + precomputed.b
+        W = W + R
+    a_sum = a_sum % curve_order
+    b_sum = b_sum % curve_order
+    return (a_sum, b_sum)
+\end{lstlisting}
 
-DO UZUPELNIENIA
+Funkcja \texttt{calculate\_ab} przyjmuje ziarno oraz listę wcześniej 
+obliczonych punktów. Kolejne wielokrotności punktów $P$ i $Q$ są sumowane wraz 
+z ich współczynnikami $a$ i $b$, aż do napotkania punktu wyróżnionego. Wynikowe 
+wartości są redukowane modulo rząd krzywej i zwracane jako współczynniki, które 
+umożliwiają wyznaczenie logarytmu dyskretnego.
+
+\subsection{Logowanie}
+
+W celu monitorowania wydajności systemu oraz postępu obliczeń, zarówno w kodzie 
+klienta, jak i serwera, zaimplementowano mechanizm logowania. CUDA umożliwia 
+wypisywanie informacji na standardowe wyjście (\texttt{stdout}) za pomocą funkcji 
+\texttt{printf}, analogicznie jak w standardowym języku C. W głównym kernelu kodu 
+można aktywować logowanie, ustawiając odpowiednią flagę za pomocą dyrektywy 
+\texttt{\#define logging}.
+
+Logowane dane w kernel'u obejmują:
+\begin{itemize}
+    \item czas znalezienia punktu wyróżnionego,
+    \item numer wątku,
+    \item numer bloku,
+    \item numer strumienia.
+\end{itemize}
+
+Przykładowy fragment logów generowanych przez kernel:
+\begin{verbatim}
+Wed Sep 18 01:14:33 AM CEST 2024 STREAM 0, instance: 8253 found distinguish point 0
+Wed Sep 18 01:14:33 AM CEST 2024 STREAM 0, instance: 28320 found distinguish point 0
+Wed Sep 18 01:14:33 AM CEST 2024 STREAM 0, instance: 19113 found distinguish point 0
+Wed Sep 18 01:14:33 AM CEST 2024 STREAM 0, instance: 28214 found distinguish point 0
+Wed Sep 18 01:14:33 AM CEST 2024 STREAM 0, instance: 24343 found distinguish point 0
+\end{verbatim}
+
+Dodatkowo, serwer po każdorazowym otrzymaniu danych od zakończonych obliczeń 
+w kernelu wypisuje informacje o łącznej liczbie punktów wyróżnionych, które 
+zgromadził do tej pory. Przykładowe logi generowane przez serwer:
+\begin{verbatim}
+Wed Sep 18 07:13:45 PM CEST 2024 Got new distinguish points
+Wed Sep 18 07:13:45 PM CEST 2024 Currently have 941239
+Wed Sep 18 07:13:45 PM CEST 2024 GPU worker 0 got task
+Wed Sep 18 07:13:45 PM CEST 2024 Got 957733 points
+\end{verbatim}
+
+Mechanizm logowania umożliwił dokładniejszą analizę wykorzystania zasobów GPU oraz 
+optymalne dostosowanie liczby wątków i bloków do struktury sprzętowej. Dane logowane 
+były zapisywane do pliku, co pozwoliło na dalsze przetwarzanie, takie jak mierzenie 
+wydajności i wizualizację wyników w formie wykresów. Wizualizacje te przedstawiają 
+między innymi sumę znalezionych punktów od czasu,
+co pozwoliło oszacować wydajność projektu.
