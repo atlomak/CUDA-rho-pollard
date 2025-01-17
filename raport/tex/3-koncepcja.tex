@@ -62,6 +62,35 @@ co jest kluczowe do późniejszego obliczenia logarytmu dyskretnego.
 Mechanizm ten pozwala na precyzyjne wyliczenie logarytmu dyskretnego po wykryciu kolizji, dzięki możliwości
 odwzorowania znalezionych punktów na kombinację wielokrotności tych punktów bazowych.
 
+\subsection{Przepływ działania}
+W momencie uruchomienia programu, serwer generuje wyznaczoną ilość punktów wstępnie obliczonych.
+Punkty te będą przechowywane przez serwer aż do końca działania programu, wraz z parametrami, które
+wygenerowały każdy z tych punktów. Następnie serwer uruchamia w wielu wątkach funkcję napisaną w pythonie, która
+odpowiada za nadzorowanie pracy programu klienta GPU. Każda z uruchomionych funkcji w momencie startu
+otrzymuje adres dwóch kolejek, które będą służyły do komunikacji z głównym wątkiem serwera. \\
+Po uruchomieniu wątków, serwer rozpoczyna działanie pętli, która zakończy się dopiero po znalezieniu
+rozwiązania ECDLP. W trakcie jej działania, serwer wykonuje
+\begin{enumerate}
+    \item Generacja nowych punktów startowych
+    \item Przekazanie punktów startowych do kolejki zadań
+    \item Pobranie znalezionych punktów wyróżnionych z kolejki z wynikami
+    \item Sprawdzenie czy w bazie punktów znalezionych wystąpiła kolizja
+    \item Dodanie punktów do bazy punktów znalezionych
+\end{enumerate}
+W momencie gdy serwer znajdzie kolizję dwóch punktów, podejmuje on próbę znalezienia ECDLP.
+Jeżeli wynik został poprawnie obliczony, serwer kończy działanie całego programu, wraz z wątkami klientów. \\
+Podprogramy klientów, uruchomione w osobnych wątkach,
+również działają w pętli, w trakcie której wykonują następujące kroki:
+\begin{enumerate}
+    \item Odebranie punktów startowych z kolejki zadań
+    \item Uruchomienie obliczeń na GPU
+    \item Odebranie wyników z GPU
+    \item Przekazanie znalezionych punktów wyróżnionych do kolejki z wynikami
+\end{enumerate}
+Komunikacja z programem na GPU odbywa się za pomocą \textit{Ctypes}, przekazując
+do programu GPU tablice z języka C oraz strukturę z danymi o parametrach krzywej,
+na której prowadzone są obliczenia.
+
 \begin{figure}[!h]
     \centering \includegraphics[width=1.1\linewidth]{arch.png}
     \caption{Schemat architektury}
