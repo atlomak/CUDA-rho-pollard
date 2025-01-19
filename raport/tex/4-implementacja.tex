@@ -5,7 +5,7 @@ wraz ze szczegółowym opisem narzędzi oraz sprzętu wykorzystanego
 przy pracy nad projektem.
 \par
 Większość opisanych zagadnień dotyczy części klienta napisanej w CUDA C++,
-poza sekcją na końcu, poświęconą serwerowi oraz częsci klienta działającej na CPU.
+poza sekcją na końcu, poświęconą serwerowi oraz części klienta działającej na CPU.
 
 \subsection{Narzędzia oraz sprzęt}
 \subsubsection{Sprzęt}
@@ -23,7 +23,7 @@ Program klienta został zaimplementowany z wykorzystaniem języka Python w wersj
 języka CUDA C++ w wersji 12.4.
 
 \subsubsection{System budowania oraz kompilacja CUDA C++}
-W celu zarządzania kompilacją częsci projektu napisanej w języku CUDA oraz C++,
+W celu zarządzania kompilacją części projektu napisanej w języku CUDA oraz C++,
 wykorzystałem narzędzie \textit{CMake}.
 \textit{CMake} zapewnia natywne wsparcie dla języka CUDA,
 co znacznie upraszcza wszelkie zarządzanie kompilacją oraz linkowanie.
@@ -32,15 +32,15 @@ rozwiązanie z wykorzystaniem samego narzędzia do budowania takiego jak \textit
 \par
 Program napisany w CUDA kompilowany był z wykorzystaniem kompilatora NVCC dostarczonego wraz z pakietem
 \textit{CUDA Toolkit} w wersji 12.4.
-NVCC do kompilacji kodu po stronie host'a (CPU) wykorzystuje kompilator z GCC w wesji 13.3.1.
+NVCC do kompilacji kodu po stronie host'a (CPU) wykorzystuje kompilator z GCC w wersji 13.3.1.
 
 
 \subsubsection{Testy}
-Wszelkie testy poprawności implemetnacji rozwiązania są przeprowadzane z wykorzystaniem framework'a PyTest dla języka Python.
+Wszelkie testy poprawności implementacji rozwiązania są przeprowadzane z wykorzystaniem framework'a PyTest dla języka Python.
 Python wraz z wykorzystaniem pakietu obliczeniowego SageMath generuje testowe dane, które
 są przekazywane do programu działającego na GPU. Następnie, otrzymane wyniki są porównywane z rezultatami
 obliczonymi przy wykorzystaniu SageMath. Wykorzystanie PyTest oraz SageMath znacznie przyśpieszyło pracę
-nad implementacją operacji na krzywej eliptycznej oraz docelowej implementacji algorytmu Rho Pollarda.
+nad implementacją operacji na krzywej eliptycznej oraz docelowej implementacji algorytmu Rho Pollard'a.
 Możliwość szybkiego generowania dużych zbiorów danych testowych, pozwoliło na wczesne zauważenie wielu subtelnych błędów
 na etapie implementacji.
 
@@ -117,9 +117,9 @@ Następne podrozdziały są poświęcone implementacji poszczególnych
 elementów składających się na kod głównego kernel'a CUDA.
 
 
-\subsection{Artmetyka na ciele $F_{p}$}
+\subsection{Arytmetyka na ciele}
 \subsubsection{Reprezentacja długich liczb}
-W przypadku ciała $F_{p}$, gdzie $p$ jest liczbą pierwszą o rozmiarze 79 bit, potrzebujemy conajmniej 79 bitowego typu danych, do samego przechowywania liczb.
+W przypadku ciała $F_{p}$, gdzie $p$ jest liczbą pierwszą o rozmiarze 79 bit, potrzebujemy co najmniej 79 bitowego typu danych, do samego przechowywania liczb.
 Jednak nawet 79 bitowy typ danych nie wystarczy, jeżeli chcemy przeprowadzić operację mnożenia
 dwóch liczb 79 bitowych. W takim przypadku, wynik pośredni może być maksymalnie $2*79 = 158$ bitowy.
 Dodatkowo, w celu reprezentacji takiej liczby, nie możemy się posłużyć wektorem składającym się z największego
@@ -133,7 +133,7 @@ $$
     \sum_{i = 0}^{4} x_i\cdot 2^{32}
 $$
 
-Zaimplemetowany jako tablica typu u\_int32:
+Zaimplementowany jako tablica typu u\_int32:
 \begin{lstlisting}[language=C++]
 struct bn
 {
@@ -157,10 +157,10 @@ daje oszczędność $2 \cdot 2 \cdot 32 = 128$ bitów na punkt znajdujący się 
 
 \subsubsection{Operacje na długich liczbach}
 Do operacji na długich liczbach, odpowiednio dostosowałem małą bibliotekę
-dostępną w domenie publicznej: \textit{tiny-bingum-c}.
-Bilbioteka ta dostarcza podstawowe operacje na dużych liczbach w postaci wektorów, takie jak dodawanie, odejmowanie, mnożenie czy dzielenie.
+dostępną w domenie publicznej: \textit{tiny-bignum-c}.
+Biblioteka ta dostarcza podstawowe operacje na dużych liczbach w postaci wektorów, takie jak dodawanie, odejmowanie, mnożenie czy dzielenie.
 Wykorzystuje w tym celu standardowe algorytmy \cite{Menezes2001} wykorzystywane przy obliczeniach \textit{multiple precision}.
-Dużą zaletą ten biblioteki jest jej prostota i brak wykorzysywania standardowej biblioteki C oraz dynamicznej alokacji pamięci.
+Dużą zaletą ten biblioteki jest jej prostota i brak wykorzystania standardowej biblioteki C oraz dynamicznej alokacji pamięci.
 Wszystkie operacja są wykonywane z wykorzystaniem stosu,
 co pozwala na jej wykorzystanie w środowiskach takich jak GPU, gdzie dostęp do dynamicznej alokacji pamieci jest ograniczony.
 W większości przypadków, aby dostosować kod z biblioteki do CUDA C++ wystarczyło dodanie
@@ -174,7 +174,7 @@ W związku z tym, zaimplementowałem dodatkowe operacje modularne takie jak mno�
 \subsubsection{Dodawanie i odejmowanie modulo}
 Dodawanie oraz odejmowanie modulo $p$, wygląda bardzo podobnie do standardowego dodawania i odejmowania.
 \par
-W przypadku odejmowanie dówch liczb na ciele $F_{p}$, nie ma potrzeby redukcji modulo p po każdej operacji.
+W przypadku odejmowanie dwóch liczb na ciele $F_{p}$, nie ma potrzeby redukcji modulo p po każdej operacji.
 Jednak niezbędne jest upewnienie się, że wynik nie jest ujemny. Ponieważ prowadzimy obliczenia na liczbach bez znaku,
 to w sytuacji gdy $a - b = c; a < b$, nastąpi przepełnienie i wynik będzie w postaci $2^{32 \cdot n}-1 - c$, gdzie $n$ to rozmiar
 wektora do przechowywania liczb. Na szczęście, możemy bardzo łatwo wrócić do poprawnego wyniku wykorzystując jedną operację
@@ -199,7 +199,7 @@ od niego liczbę p.
 
 \subsubsection{Mnożenie modulo}
 Mnożenie modularne jest bardziej kosztowne niż dodawanie czy odejmowanie, ponieważ wymaga dzielenia z resztą.
-W swojej pracy przeprowadzam standardowe mnożenie modularne, jednak również istnieją bardziej wydajne sposoby, na przykład wykorzystanie redukcji Barreta CITE APPLIED.
+W swojej pracy przeprowadzam standardowe mnożenie modularne, jednak również istnieją bardziej wydajne sposoby, na przykład wykorzystanie redukcji Barret'a CITE APPLIED.
 \par
 Aby przeprowadzić klasyczne mnożenie modularne ciele $F_{p}$, na początku musimy przeprowadzić standardowe mnożenie długich liczb.
 Następnie, otrzymany wynik dzielimy przez $p$ i zwracamy resztę z dzielenia.
@@ -262,8 +262,8 @@ polega na wykorzystaniu dodatkowych zmiennych do śledzenia zmian znaku wyniku.
 
 \subsubsection{Biblioteka CGBN}
 W pierwotnej wersji swojej pracy, do operacji na dużych liczbach wykorzystałem specjalną bibliotekę CGBN dla platformy CUDA. Oferuje ona
-wszystkie podstawowe operacje na długich liczbach, takie jak dodawnia, odejmowanie czy mnożenie nawet do 32 tyś. bitów.
-Dodatkowo, posiada ona implementację bardziej zaawansowanych funkcji, takich jak odwrotność modulo czy redukcja Barreta.
+wszystkie podstawowe operacje na długich liczbach, takie jak dodawanie, odejmowanie czy mnożenie nawet do 32 tyś. bitów.
+Dodatkowo, posiada ona implementację bardziej zaawansowanych funkcji, takich jak odwrotność modulo czy redukcja Barret'a.
 Niestety, biblioteka ta narzuca spore ograniczenia pod kątem zasobów. Niezbędne jest grupowanie wątków w grupy
 4, 8, 16 lub 32. Wysoką wydajność obliczeń, uzyskiwałem dopiero w grupach składających się z 32 wątków.
 Pomimo znacznie szybszego wykonywania się poszczególnych operacji w ramach takiej grupy wątków, narzucone
@@ -306,7 +306,7 @@ __device__ void bignum_assign(struct bn *dst, struct bn *src);
 
 \subsection{Funkcja iterująca}
 
-Główna funkcja realizująca kolejne kroki algorytmu Rho Pollarda została
+Główna funkcja realizująca kolejne kroki algorytmu Rho Pollard'a została
 zaimplementowana jako kernel GPU. Na początku swojego działania kernel ładuje
 punkty wstępnie obliczone do pamięci współdzielonej (\textit{shared memory}),
 która pełni funkcję pamięci podręcznej.
@@ -358,16 +358,16 @@ __device__ uint32_t map_to_index(bn *x) {
 
 
 \subsubsection{Punkty wyróżnione}
-W ramach każdej iteracji, musimy w wydajny i szybki sposób sprawdzić, czy obliczony punkt jest punktem wyróźnionym.
+W ramach każdej iteracji, musimy w wydajny i szybki sposób sprawdzić, czy obliczony punkt jest punktem wyróżnionym.
 W mojej implementacji, kryterium warunkującym jest liczba zer na końcu współrzędnej $x$ obliczonego punktu.
 \par
-Do sprawdzenia, czy punkt jest wyróźnionym, słuzy prosta funkcja obliczająca bitową operację AND ze
+Do sprawdzenia, czy punkt jest wyróżniony, słuzy prosta funkcja obliczająca bitową operację AND ze
 współrzędnej punktu oraz specjalnej maski bitowej wyznaczanej na podstawie poszukiwanej ilości zer.
 Przykładowo, dla poszukiwanej liczby zer 3, maska będzie w postaci $0 ... 00111$. Jeżeli
 również ostatnie 3 bity współrzędnej $x$ będzie miało zerowy znak, to otrzymany wynik operacji AND wyniesie 0.
 \par
 Istotne jest, aby taka sama funkcja została zaimplementowana po stronie serwera na CPU, ponieważ w przypadku znalezienia kolizji,
-musi on być w stanie odtworzyć cały spacer losowy prowadzący do danego punktu wyróźnionego.
+musi on być w stanie odtworzyć cały spacer losowy prowadzący do danego punktu wyróżnionego.
 
 \begin{algorithm}
     \caption{Funkcja \texttt{is\_distinguish}}
@@ -388,7 +388,7 @@ Aby ułatwić testy na różnych etapach implementacji całego systemu,
 liczba sprawdzanej ilości zer jest sparametryzowana. Przy starcie każdej serii obliczeń, poszukiwana liczba zer jest jednym z parametrów przekazywanym
 do funkcji kernel'a.
 \par
-Po znalezieniu punktu wyróźnionego, ustawiana jest specjalna flaga w strukturze przechowującej dane punktu oraz
+Po znalezieniu punktu wyróżnionego, ustawiana jest specjalna flaga w strukturze przechowującej dane punktu oraz
 jest on zapisywany pod pierwsze wolne miejsce w pamięci globalnej.
 
 \subsubsection{Obliczanie odwrotnosci w seriach}
@@ -424,7 +424,7 @@ $$
 $$
 \par
 Sposób implementacji tej tej metody wymagał podjęcia paru decyzji.
-Pierwszym problemem który pojawia się w metodzie Montgomerego,
+Pierwszym problemem który pojawia się w metodzie Montgomery'ego,
 jest konieczność
 obliczania iteracji dla wielu punktów jednocześnie.
 \par
@@ -435,7 +435,7 @@ Następnie, wątek zwracałby obliczone odwrotności za pomocą pamięci współ
 Jak zauważono w pracy \cite{Boss2015}, takie podejście nie jest optymalne w przypadku GPU.
 Wymagałoby to sporo synchronizacji pomiędzy wątkami, oraz sporej ilości zapisów i odczytów
 z pamięci współdzielonej, która pomimo bycia znacznie szybszą niż pamięć globalna, nie jest tak
-szybka jak prywatna pamięc w postaci rejestrów. Dodatkowo, z racji, że tylko jeden
+szybka jak prywatna pamięć w postaci rejestrów. Dodatkowo, z racji, że tylko jeden
 wątek oblicza odwrotności, pozostałe muszą bezczynnie czekać.
 \par
 Dlatego sposobem, który zastosowałem jest obliczanie wielu odwrotności
@@ -443,15 +443,15 @@ w ramach jednego wątku. Oznacza to, że każdy wątek zamiast przetwarzać tylk
 dostaje ich $n$ na początku działania programu.
 \par
 \textit{Naiwne} podejście polegałoby na przekazaniu każdemu z wątków $n$ punktów startowych,
-i oczekiwanie aż znajdzie dla każdego punktu startowego odpowiadający mu punkt wyróźniony. Taki sposób powoduje,
-że bardzo szybko zaczynamy tracić zyski z metody Montgomerego, a nawet zaczynamy działać wolniej,
+i oczekiwanie aż znajdzie dla każdego punktu startowego odpowiadający mu punkt wyróżniony. Taki sposób powoduje,
+że bardzo szybko zaczynamy tracić zyski z metody Montgomery'ego, a nawet zaczynamy działać wolniej,
 z powodu dodatkowych obliczeń, których nie wykorzystujemy.
 Wynika to z faktu,
 że po znalezieniu $i$ punktów, zysk z metody jest postaci:
 $$
     (n-i)O = O + 3(n-i)M + 3(i)M
 $$
-Gdzie $3(i)M$ to mnożenia, które nie przyczyniają się do znalezienia nowych punktów wyróźnionych, więc należy je traktować jako niepotrzebne spowolnienie.
+Gdzie $3(i)M$ to mnożenia, które nie przyczyniają się do znalezienia nowych punktów wyróżnionych, więc należy je traktować jako niepotrzebne spowolnienie.
 \par
 W celu rozwiązania tego problemu, zastosowałem okienkowanie obliczeń w tablicy o stałym rozmiarze $m$.
 Sposób ten wymaga, aby każda wątek otrzymał $n > m$ punktów startowych w wyznaczonym dla niego miejscu w pamięci globalnej.
@@ -459,15 +459,15 @@ Im większa różnica $n-m$ tym lepszy
 stosunek czasu obliczeń do narzutu czasowego związanego ze startem programu.
 \par
 Na początku działania wątku, ładujemy do tablicy okna kolejne $m$ punktów startowych z pamięci globalnej.
-Następnie w pętli obliczamy odwrotności wymagane dla operacji dodawnia punktów i przeprowadzamy dodawanie. Tym sposobem,
-w jednym kroku pętli, wykonujemy jedną iterację algorytmu Rho Pollarda dla $m$ punktów. Na samym końcu każdego kroku pętli,
+Następnie w pętli obliczamy odwrotności wymagane dla operacji dodawania punktów i przeprowadzamy dodawanie. Tym sposobem,
+w jednym kroku pętli, wykonujemy jedną iterację algorytmu Rho Pollard'a dla $m$ punktów. Na samym końcu każdego kroku pętli,
 sprawdzamy czy któryś z obliczonych punktów jest punktem wyróżnionym. Jeżeli tak,
 znaleziony punkt zapisujemy na pierwszym wolnym miejscu w pamięci globalnej, a na jego miejsce ładujemy do tablicy
 okna kolejny punkt startowy.
-Dzięki temu, przez większość czasu obliczeń, wykorzystujemy pełny zysk z metody Montgomerego.
+Dzięki temu, przez większość czasu obliczeń, wykorzystujemy pełny zysk z metody Montgomery'ego.
 \par
 Jeżeli dodatkowo zastosujemy flagę, która kończy obliczenia wszystkich wątków w bloku, gdy pierwszy wątek,
-znajdzie $n-m$ punktów wyróźnionych, to otrzymujemy maksymalny poziom wydajności w ciągu całej fali obliczeń.
+znajdzie $n-m$ punktów wyróżnionych, to otrzymujemy maksymalny poziom wydajności w ciągu całej fali obliczeń.
 Efekt ten jest dokładniej opisany w części poświęconej problemowi \textit{tailing effect}.
 
 % schemat
@@ -480,7 +480,7 @@ Efekt ten jest dokładniej opisany w części poświęconej problemowi \textit{t
 
 \subsection{Tail effect}
 Tail Effect to zjawisko, które polega na nierównomiernym obciążeniu wątków na GPU.
-W przypadku równoległej wersji algorytmu Rho Pollarda, to zjawisko jest szczególnie widoczne,
+W przypadku równoległej wersji algorytmu Rho Pollard'a, to zjawisko jest szczególnie widoczne,
 ze względu na losowość funkcji błądzenia po krzywej.
 Wątki znajdują punkty wyróżnione w różnym, losowym czasie.
 \par
@@ -496,7 +496,7 @@ czasu obliczeń.
 Rys \ref{fig:tail_effect_1} oraz \ref{fig:tail_effect_3} przedstawiają czas pracy każdego z wątków w bloku, w trakcie jednej fali obliczeń.
 W trakcie testu, każdy z wątków poszukiwał punktów wyróżnionych z 17 zerami na końcu współrzędnej $x$. Widoczne jest
 znaczne lepsze wykorzystanie zasobów GPU w przypadku, gdy każdy z wątków musi znaleźć 3 punkty wyróżnione przed zakończeniem pracy.
-Zmniejsza to wplyw anomalii, gdy punkt wyróżniony jest znajdowany znacznie wcześniej lub później niż wynika z wartości oczekiwanej.
+Zmniejsza to wpływ anomalii, gdy punkt wyróżniony jest znajdowany znacznie wcześniej lub później niż wynika z wartości oczekiwanej.
 
 % wykres
 \begin{figure}[H]
@@ -526,7 +526,7 @@ Dzięki wykorzystaniu strumieni, scheduler CUDA
 może uruchamiać kolejne bloki obliczeń z kolejki zadań, gdy tylko
 zwolni się miejsce na kolejny blok, zamiast czekać ze startem na zakończenie poprzedniego kernel'a \cite{cuda}.
 \par
-Rys \ref{fig:tail_effect_3} przedstawia wykres sumy znalezionych punków od czasu przy zakolejkowaniu dwóch kernel'i w odzielnych strumieniach.
+Rys \ref{fig:tail_effect_3} przedstawia wykres sumy znalezionych punków od czasu przy uruchomieniu dwóch kernel'i w oddzielnych strumieniach.
 Widoczne jest przejmowanie przez strumień Stream 2 wolnych zasobów, zwalnianych przez Stream 1.
 Wypłaszczenie krzywej sumy punktów pod koniec pracy każdego ze strumieni, jest
 efektem ogona, spowodowanym przez nierównomierny czas pracy na poziomie bloków.
@@ -547,16 +547,16 @@ Jednak dopóki jest zapewniona zastępowalność bloków na SM, efekt nie wpływ
 \end{figure}
 
 \subsection{Program serwera}
-Główny cel serwera centralnego w równoległej wersji algorytmu Rho Pollarda, sprowadza się do
+Główny cel serwera centralnego w równoległej wersji algorytmu Rho Pollard'a, sprowadza się do
 przechowywania obliczonych punktów wyróżnionych oraz poszukiwania wśród nich kolizji.
-W mojej implementacji, jego zadania zostały rozszczerzone o generowanie punktów startowych
+W mojej implementacji, jego zadania zostały rozszerzone o generowanie punktów startowych
 oraz wstępną generację punktów niezbędnych do spaceru losowego w wersji \textit{addition walk}.
 \par
 Na samym początku działania systemu, serwer startuje odpowiednią ilość
 klientów, poprzez uruchamianie w osobnych wątkach funkcji \textit{GPUWorker},
 w ilości na tyle dużej, aby wysycić zasoby GPU.
 Ponieważ kod działający na GPU został skompilowany z flagą dla kompilatora NVCC \textit{--default-stream per-thread},
-każdy z klientów działających w osobnym wątku, tworzy własny strumień CUDA, co pozwala na ich kolejkowanie uruchomionych kerneli po stronie GPU.
+każdy z klientów działających w osobnym wątku, tworzy własny strumień CUDA, co pozwala na ich kolejkowanie uruchomionych kernel'i po stronie GPU.
 \par
 Klienci komunikuje się z serwerem za pomocą dwóch asynchronicznych kolejek FIFO.
 Pierwsza z nich służy do przekazywania punktów startowych z serwera do klientów, a druga do przekazywania
@@ -615,7 +615,7 @@ W przypadku wykrycia kolizji serwer pobiera ziarna obu punktów i odtwarza
 kolejne kroki algorytmu, które doprowadziły do ich znalezienia. W tym procesie
 serwer oblicza wielokrotności punktów $P$ oraz $Q$, co pozwala na określenie
 logarytmu dyskretnego. W rzadkich przypadkach, gdy obliczenie odwrotności modularnej
-jest niemożliwe (np. mianownik wynosi $0$ w algorytmie Rho Pollarda), obliczenie
+jest niemożliwe (np. mianownik wynosi $0$ w algorytmie Rho Pollard'a), obliczenie
 logarytmu dyskretnego może się nie powieść.
 
 Jeżeli jednak obliczenia zakończą się sukcesem, serwer wyznacza logarytm
@@ -652,7 +652,7 @@ umożliwiają wyznaczenie logarytmu dyskretnego.
 W celu monitorowania wydajności systemu oraz postępu obliczeń, zarówno w kodzie
 klienta, jak i serwera, zaimplementowano mechanizm logowania. CUDA umożliwia
 wypisywanie informacji na standardowe wyjście (\texttt{stdout}) za pomocą funkcji
-\texttt{printf}, analogicznie jak w standardowym języku C. W głównym kernelu kodu
+\texttt{printf}, analogicznie jak w standardowym języku C. W głównym kernel'u kodu
 można aktywować logowanie, ustawiając odpowiednią flagę za pomocą dyrektywy
 \texttt{\#define logging}.
 
@@ -674,7 +674,7 @@ Wed Sep 18 01:14:33 AM CEST 2024 STREAM 0, instance: 24343 found distinguish poi
 \end{verbatim}
 
 Dodatkowo, serwer po każdorazowym otrzymaniu danych od zakończonych obliczeń
-w kernelu wypisuje informacje o łącznej liczbie punktów wyróżnionych, które
+w kernel'u wypisuje informacje o łącznej liczbie punktów wyróżnionych, które
 zgromadził do tej pory. Przykładowe logi generowane przez serwer:
 \begin{verbatim}
 Wed Sep 18 07:13:45 PM CEST 2024 Got new distinguish points
