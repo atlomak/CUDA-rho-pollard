@@ -15,7 +15,7 @@ niezbędnym krokiem przed przystąpieniem do pełnoprawnych prób rozwiązania
 problemu logarytmu dyskretnego dla krzywej ECCp79. Pozwoliły one na upewnienie się,
 że implementacja działa poprawnie oraz spełnia wszystkie założenia teoretyczne.
 
-W tym celu wykorzystano środowiska PyTest oraz SageMath do przeprowadzenia testów
+W tym celu wykorzystałem środowiska PyTest oraz SageMath do przeprowadzenia testów
 funkcjonalnych, weryfikujących poprawność operacji na krzywych eliptycznych
 oraz pierwszych kroków algorytmu Rho Pollard'a.
 
@@ -43,9 +43,9 @@ włączonym pełnym logowaniem każdego znalezionego punktu wyróżnionego. Wyda
 mierzono na podstawie przyrostu liczby znalezionych punktów w czasie, co pozwalało
 na oszacowanie liczby iteracji dodawania punktów na sekundę.
 
-Testy przeprowadzono przy założeniu, że punkt wyróżniony spełnia warunek 20
+Testy przeprowadziłem przy założeniu, że punkt wyróżniony spełnia warunek 20
 najmłodszych bitów współrzędnej $x$ równych $0$ w reprezentacji bitowej.
-Sprawdzano sumę znalezionych punktów wyróżnionych w różnych odstępach czasu:
+Sumę znalezionych punktów wyróżnionych została obliczona w różnych odstępach czasu:
 po 1 minucie oraz 5 minutach.
 
 \begin{table}[h!]
@@ -62,7 +62,7 @@ po 1 minucie oraz 5 minutach.
     \label{tab:performance}
 \end{table}
 
-Na podstawie wyników testów oszacowano liczbę operacji dodawania punktów na
+Na podstawie wyników testów oszacowałem liczbę operacji dodawania punktów na
 sekundę w algorytmie Rho Pollard'a. Prawdopodobieństwo znalezienia punktu wyróżnionego,
 gdy 20 najmłodszych bitów współrzędnej $x$ wynosi $0$, można określić jako
 $$
@@ -75,7 +75,7 @@ $$
     \text{Średnia liczba iteracji} = \frac{1}{P} = 2^{20}.
 $$
 
-Na podstawie wyników testów, oszacowano, że implementacja osiąga wydajność na
+Na podstawie wyników testów, mogłem oszacować, że implementacja osiąga wydajność na
 poziomie 87,7 milionów operacji dodawania punktów na sekundę.
 
 \subsection{Rozwiązanie ECDLP dla krzywej ECCp79}
@@ -93,7 +93,7 @@ a jego wyniki zostały szczegółowo udokumentowane.
     \label{fig:first_attempt}
 \end{figure}
 
-Poniżej przedstawiono wyniki pięciu niezależnych prób obliczenia ECDLP dla
+Poniżej przedstawiam wyniki pięciu niezależnych prób obliczenia ECDLP dla
 krzywej ECCp79, wskazujące liczbę znalezionych punktów wyróżnionych do momentu
 znalezienia kolizji oraz czas trwania obliczeń.
 \begin{table}[H]
@@ -116,7 +116,7 @@ znalezienia kolizji oraz czas trwania obliczeń.
 
 
 \paragraph{Weryfikacja wyników za pomocą SageMath.}
-Aby upewnić się, że uzyskane rozwiązanie ECDLP jest poprawne, przeprowadzono
+Aby upewnić się, że uzyskane rozwiązanie ECDLP jest poprawne, przeprowadziłem
 weryfikację przy użyciu oprogramowania SageMath. Weryfikacja polegała na
 podstawieniu uzyskanego wyniku logarytmu dyskretnego do równania punktowego
 na krzywej eliptycznej i sprawdzeniu, czy generuje on punkt publiczny
@@ -186,7 +186,7 @@ Wiele prac o podobnej tematyce również wykorzystuje GPU lub układy FPGA do
 obliczania logarytmu dyskretnego. Jednak zazwyczaj dotyczą one krzywej
 eliptycznej na ciele binarnym \cite{Wenger2014,FPGA2008,Majkowski2008}. W
 takim przypadku porównanie traci na wartości, ponieważ na ciele binarnym
-można zastosować znacznie więcej optymalizacji przy operacjach na krzywej.
+można zastosować znacznie więcej optymalizacji przy operacjach na krzywej \cite{Blake2005}.
 
 W celach historycznych warto wspomnieć, że pierwsze złamanie krzywej ECCp79
 udało się w 1997 roku \cite{certicom-cracked}. W tym celu wykorzystano kilka komputerów

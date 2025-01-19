@@ -63,7 +63,7 @@ def GPUworker(
 W celu komunikacji z serwerem, wykorzystywane są obiekty kolejek
 \textit{queue.Queue} z biblioteki standardowej.
 Ponieważ Python w wersji 3.12 nie wspiera równoległego wykonywania
-się wątków, to zmiana wątku następuje po wywołaniu programu CUDA.
+się wątków \cite{GIL}, to zmiana wątku następuje po wywołaniu programu CUDA.
 Następuje wtedy wywołanie systemowe \textit{Sleep} i wątek pozostaje nieaktywny
 aż do zakończenie obliczeń przez GPU.
 Dzięki kompilacji programu CUDA z flagą \textit{--default-stream per-thread},

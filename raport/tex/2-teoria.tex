@@ -26,7 +26,7 @@ wykorzystany do programowania kart graficznych innych producentów. Niestety jes
 gorzej wspierany w przypadku kart graficznych Nvidia.
 \par
 \subsubsection{Model programowania CUDA}
-Program napisany w CUDA, składa się z jednego lub więcej  \\
+Program napisany w CUDA, składa się z jednego lub więcej
 \textit{kernel'a} - funkcji programu, która będzie się wykonywać równolegle na GPU, na każdym z uruchomionych wątków.
 Wątki są grupowane w \textit{bloki}, które mogą się składać z 1 do 1024 wątków w przypadku \textit{CUDA 7.5} \cite{CudaDeveloper}.
 Następnie bloki są uruchamiane na dostępnych \b{SM} - \textit{streaming multiprocessor}.
@@ -41,7 +41,7 @@ W przypadku architektury SIMD ważne jest unikanie długich segmentów
 warunkowych, ponieważ skutkuje to sekwencyjnymi obliczeniami.
 W sytuacji gdy następuje rozgałęzienie kodu - \textit{branching},
 część wątków w warp'ie musi czekać na pozostałe, skutkując sekwencyjnym wykonywaniem kodu.
-Jest to szczególnie istotne dla wydajności działania programu na GPU.
+Jest to szczególnie istotne dla wydajności działania programu na GPU \cite{CudaDeveloper}.
 \subsubsection{Hierarchia pamięci}
 Kolejnym ważnym elementem który mocno wpływa na wydajność
 programu, jest odpowiedni dostęp do pamięci.
@@ -126,9 +126,8 @@ Dodatkowo odwrotność punktu na krzywej $P$ definiujemy jako $-P = (x, -y)$ \ci
 
 
 \subsubsection{Krzywe eliptyczne na ciele skończonym}
-Krzywe eliptyczne zdefiniowane na ciele skończonym $F_p$ oraz $F_{p^n}$ mają kluczowe znaczenie w kryptografii.
-W swojej pracy skupiłem się wyłącznie na krzywych zdefiniowanych na ciele skończonym $F_p$ gdzie $p$ jest liczbą pierwszą.
-\par
+Krzywe eliptyczne zdefiniowane na ciele skończonym $F_p$ oraz $F_{p^n}$ mają kluczowe znaczenie w kryptografii \cite{Stinson2021}.
+W swojej pracy skupiłem się wyłącznie na krzywych zdefiniowanych na ciele skończonym $F_p$ gdzie $p$ jest liczbą pierwszą. \\
 Wykres krzywej eliptycznej nad ciałem $F_p$ nie przypomina krzywej zdefiniowanej na liczbach rzeczywistych.
 Krzywa taka składa się z dyskretnych punktów, których współrzędne należą do ciała
 na którym jest opisana.
@@ -142,10 +141,10 @@ jednak wszystkie działania są wykonywane na ciele $F_p$.
 
 
 \subsubsection{Problem logarytmu dyskretnego}
-Problem logarytmu dyskretnego (\textbf{DLP}) jest
+Problem logarytmu dyskretnego (DLP) jest
 podstawą kryptosystemów opartych o grupy.
 Jednymi z bardziej znanych są kryptosystem El-Gamala oraz protokół wymiany
-kluczy Diffie-Hellmana'a.
+kluczy Diffie-Hellmana'a \cite[text]{Stinson2021,Blake2005}.
 Problem logarytmu dyskretnego można zdefiniować na grupach cyklicznych.
 zarówno na grupie multiplikatywnej $(\mathbb{G},\cdot)$
 oraz grupie addytywnej $(\mathbb{G}, +)$, przy odpowiednim zdefiniowaniu działań grupowych.
