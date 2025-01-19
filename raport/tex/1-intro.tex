@@ -14,8 +14,8 @@ Bezpieczeństwo ECC opiera się na trudności rozwiązania problemu logarytmu
 dyskretnego na krzywych eliptycznych. Jest to problem matematyczny, który w
 praktyce nie ma efektywnego rozwiązania w rozsądnym czasie przy użyciu
 współczesnych metod obliczeniowych. Do tej pory nie opracowano algorytmu
-zdolnego rozwiązać ten problem w czasie podwykładniczym, dlatego
-kryptoanaliza ECC wymaga dużych zasobów obliczeniowych.
+zdolnego rozwiązać ten problem w czasie podwykładniczym na komputerach klasycznych, dlatego
+kryptoanaliza ECC wymaga dużych zasobów obliczeniowych \cite{Menezes2001}.
 Z tego powodu, często wykorzystywane w tej roli są układy GPU \cite[]{Boss2015,Panetta2017,Bernstein2012},
 FPGA \cite[]{Wenger2014,Mane2011,FPGA2008,Majkowski2008}
 czy nawet konsole dla graczy \cite{Bos2010}.
@@ -46,8 +46,8 @@ ważniejszym elementem ich rozwoju.
 Celem tej pracy jest realizacja systemu korzystającego z koprocesora GPU,
 w celu przyśpieszenia obliczeń przy
 rozwiązywaniu problemu logarytmu dyskretnego.
-Implementacja została zoptymalizowana i dostosowana pod obliczenie logarytmu
-dyskretnego na krzywej eliptycznej ECCp-79, zaproponowanej w challange'u Certicom \cite{certicom-challange}.
+Implementacja została zoptymalizowana i dostosowana do obliczenia logarytmu
+dyskretnego na krzywej eliptycznej ECCp-79, zaproponowanej w wyzwaniu \textit{The Certicom ECC Challenge} \cite{certicom-challange}.
 \par
 Głównymi elementami stworzonego systemu
 jest program klienta wykonującego część algorytmu Rho Pollard'a na karcie graficznej Nvidia

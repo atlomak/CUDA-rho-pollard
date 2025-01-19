@@ -16,7 +16,7 @@ programowanie GPGPU (\textit{general purpose GPU}) w
 dziedzinach takich jak obliczenia naukowe, machine learning czy kryptografia.
 
 \par
-W mojej pracy, w celu przeprowadzenia ataku na krzywą eliptyczną, wykorzystałem
+W pracy, w celu przeprowadzenia ataku na krzywą eliptyczną, wykorzystałem
 algorytm \textit{Rho Pollard'a}, który z niewielkimi modyfikacjami można bardzo skutecznie wykonywać
 równolegle. Z tego powodu wykorzystanie GPU do kryptoanalizy, pozwala znacznie przyśpieszyć czas
 obliczeń. W celu stworzenia programu na GPU wykorzystałem technologię Nvidia CUDA, głównie ze względu
@@ -277,6 +277,5 @@ odpowiedni poziom losowości, niezależnie od rozmiaru grupy \cite{Teske2000}.
 
 Główną zaletą tej metody w implementacjach GPU jest minimalizacja rozgałęzień 
 w czasie iteracji. Dzięki temu niemal wszystkie wątki wykonują tę samą operację 
-dodawania punktów, co jest istotne w architekturze SIMD (Single Instruction, 
-Multiple Data). Wyjątkiem jest rzadki przypadek, gdy $W_i = R_{f(W_i)}$, co 
+dodawania punktów, co jest istotne w architekturze SIMD. Wyjątkiem jest rzadki przypadek, gdy $W_i = R_{f(W_i)}$, co 
 wymaga wykonania operacji zwielokrotnienia punktu.
