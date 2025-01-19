@@ -1,3 +1,4 @@
+\newpage
 \section{Koncepcja}
 
 Projekt systemu do obliczania logarytmu dyskretnego wykorzystuje koprocesor GPU w celu akceleracji obliczeń.
@@ -12,20 +13,25 @@ podłączonych do komputera, co dodatkowo zwiększa wydajność obliczeń.
 
 \subsection{Klient}
 Klient składa się z dwóch wyróżnialnych części.
-Część odpowiedzialna za obliczania na krzywej została napisana w języku CUDA C++.
-W celu optymalizacji obliczeń pod platformę jaką jest GPU, algorytm oblicza kolejne punkty
-za pomocą \textit{Adding Walk} opisanego w poprzednim rozdziale. W tym celu przeprowadza
-on dodawanie punktów na krzywej implementując arytmetykę dla dużych liczb oraz niezbędne operacje
-takie jak obliczanie odwrotności modularnej.
-Program klienta jako dane wejściowe otrzymuje:
+Część odpowiedzialna za obliczenia na krzywej została napisana w języku
+CUDA C++. W celu optymalizacji obliczeń pod platformę GPU, algorytm oblicza
+kolejne punkty za pomocą \textit{Adding Walk}, opisanego w poprzednim
+rozdziale. W tym celu niezbędne jest zaimplementowanie operacji modularnych,
+które umożliwiają przeprowadzanie obliczeń na krzywej eliptycznej.
+
+Ponieważ w języku C oraz CUDA C++ nie istnieje typ danych pozwalający na
+przechowywanie liczb większych niż 64-bitowe, konieczne jest odpowiednie
+zaimplementowanie nowych typów danych oraz samych operacji.
+
+Aby rozpocząć obliczenia, program klienta otrzymuje następujące dane wejściowe:
 \begin{itemize}
     \item tablicę punktów startowych,
     \item ziarna użyte do wygenerowania każdego z punktów startowych,
     \item tablicę punktów wstępnie obliczonych potrzebnych do \textit{Adding Walk},
     \item parametry krzywej.  
 \end{itemize}
-Ziarno używane do generowania punktów startowych jest w postaci liczby
-przez którą należy zwielokrotnić punkt $P$ aby otrzymać dany punkt startowy.
+Ziarno używane do generowania punktów startowych jest w postaci liczby przez
+którą należy zwielokrotnić punkt $P$ aby otrzymać dany punkt startowy.
 Po otrzymaniu danych, program uruchamia kernel CUDA, odpowiedzialny za szukanie punktów wyróżnionych.
 Każdy uruchomiony wątek, niezależnie od pozostałych przeprowadza obliczenia algorytmu, aż do momentu
 gdy znajdzie punkt wyróżniony.

@@ -45,13 +45,80 @@ Możliwość szybkiego generowania dużych zbiorów danych testowych, pozwoliło
 na etapie implementacji.
 
 
+\subsection{Program klienta Python}
+Część podprogramu klienta napisana w języku Python, została zaimplementowana
+za pomocą biblioteki \textit{Threading} z biblioteki standardowej.
+Na początku działania programu, podprogram serwera uruchamia w kilku wątkach
+funkcję \textit{GPUWorker} która stanowi implementację klienta.
+Odpowiada ona za
+dostosowywanie danych wejściowych do programu napisanego w CUDA, oraz
+zwracanie wyników z powrotem do serwera. Sygnatura funkcji GPUWorker:
+
+\begin{lstlisting}[language=Python]
+def GPUworker(
+    starting_params: StartingParameters,
+    task_queue: Queue,
+    result_queue: Queue, stream):
+\end{lstlisting}
+
+W celu komunikacji z serwerem, wykorzystywane są obiekty kolejek
+\textit{queue.Queue} z biblioteki standardowej.
+Ponieważ Python w wersji 3.12 nie wspiera równoległego wykonywania
+się wątków, to zmiana wątku następuje po wywołaniu programu CUDA.
+Następuje wtedy wywołanie systemowe \textit{Sleep} i wątek pozostaje nieaktywny
+aż do zakończenie obliczeń przez GPU.
+Dzięki kompilacji programu CUDA z flagą \textit{--default-stream per-thread},
+każdy z wątków klienta uruchamia program na GPU w innym strumieniu CUDA. Pozwala
+to na współbieżne wykonywanie się obliczeń na GPU uruchomionych przez każdy wątek, zarządzane przez
+\textit{CUDA Scheduler}. \\
+Implementacja struktur danych przekazywanych do programu CUDA:
+\begin{lstlisting}[language=Python]
+LIMBS = 5
+class bn(ctypes.Structure):
+    _fields_ = [("array", ctypes.c_uint32 * LIMBS)]
+
+class small_bn(ctypes.Structure):
+    _fields_ = [("array", ctypes.c_uint32 * ceil(LIMBS / 2))]
+class EC_point(ctypes.Structure):
+    _fields_ = [
+        ("x", bn),
+        ("y", bn),
+        ("seed", bn),
+        ("is_distinguish", ctypes.c_uint32),
+    ]
+\end{lstlisting}
+
+\subsection{Program klienta CUDA}
+
+Program uruchamiany na GPU został skompilowany jako dynamicznie linkowana
+biblioteka (\textit{SHARED}). Aby zapewnić zgodność z interfejsem binarnym
+(ABI) wykorzystywanym przez bibliotekę Ctypes, do głównej funkcji dodano
+słowo kluczowe \texttt{extern "C"}.
+Pozwoliło to uzyskać punkt wejścia zgodny
+z konwencją wywołania C (C ABI). Główna funkcja, po otrzymaniu parametrów
+startowych, alokuje odpowiednią pamięć CUDA oraz konfiguruje niezbędne
+parametry uruchamiana dla głównego kernel'a, który realizuje algorytm
+Rho Pollard'a. Po zakończeniu obliczeń, pamięć jest zwalniana, a wyniki
+zapisywane w tablicach przekazanych jako dane wejściowe. W rezultacie,
+tablica punktów startowych przekazana do programu pełni jednocześnie
+funkcję miejsca zapisu wyników obliczeń.
+Prototyp funkcji wejściowej do programu CUDA:
+\begin{lstlisting}[language=C++]
+extern "C" {
+void run_rho_pollard(
+    EC_point *startingPts,
+    uint32_t instances,
+    uint32_t n, PCMP_point *precomputed_points,
+    EC_parameters *parameters,
+    int stream
+    )
+\end{lstlisting}
+Następne podrozdziały są poświęcone implementacji poszczególnych
+elementów składających się na kod głównego kernel'a CUDA.
+
 
 \subsection{Artmetyka na ciele $F_{p}$}
 \subsubsection{Reprezentacja długich liczb}
-Natywnie w języku C oraz CUDA C++ nie istnieje typ danych,
-który pozwalałby na przechowywanie liczb większych niż 64 bitowe.
-W celu przeprowadzenia obliczeń na liczbach większych niż natywny rozmiar słowa bitowego,
-niezbędna jest odpowiednia implementacja nowych typów danych jak i samych operacji.
 W przypadku ciała $F_{p}$, gdzie $p$ jest liczbą pierwszą o rozmiarze 79 bit, potrzebujemy conajmniej 79 bitowego typu danych, do samego przechowywania liczb.
 Jednak nawet 79 bitowy typ danych nie wystarczy, jeżeli chcemy przeprowadzić operację mnożenia
 dwóch liczb 79 bitowych. W takim przypadku, wynik pośredni może być maksymalnie $2*79 = 158$ bitowy.
@@ -239,19 +306,19 @@ __device__ void bignum_assign(struct bn *dst, struct bn *src);
 
 \subsection{Funkcja iterująca}
 
-Główna funkcja realizująca kolejne kroki algorytmu Rho Pollarda została 
-zaimplementowana jako kernel GPU. Na początku swojego działania kernel ładuje 
-punkty wstępnie obliczone do pamięci współdzielonej (\textit{shared memory}), 
+Główna funkcja realizująca kolejne kroki algorytmu Rho Pollarda została
+zaimplementowana jako kernel GPU. Na początku swojego działania kernel ładuje
+punkty wstępnie obliczone do pamięci współdzielonej (\textit{shared memory}),
 która pełni funkcję pamięci podręcznej.
 
-Pierwszy wątek każdego bloku inicjalizuje specjalną flagę \texttt{warp\_finished}, 
-ustawiając jej wartość na \texttt{0}. Flaga ta służy do kontrolowania zakończenia 
-pracy wszystkich wątków w ramach danego bloku. Po zakończeniu obliczeń przez 
-przynajmniej jeden wątek, flaga sygnalizuje konieczność zakończenia działania 
-pozostałych wątków w bloku. Szczegółowe omówienie mechanizmu działania tej flagi 
+Pierwszy wątek każdego bloku inicjalizuje specjalną flagę \texttt{warp\_finished},
+ustawiając jej wartość na \texttt{0}. Flaga ta służy do kontrolowania zakończenia
+pracy wszystkich wątków w ramach danego bloku. Po zakończeniu obliczeń przez
+przynajmniej jeden wątek, flaga sygnalizuje konieczność zakończenia działania
+pozostałych wątków w bloku. Szczegółowe omówienie mechanizmu działania tej flagi
 znajduje się w sekcji poświęconej (\textit{tail effect}).
 
-Przykładowy fragment kodu ilustrujący inicjalizację pamięci współdzielonej oraz 
+Przykładowy fragment kodu ilustrujący inicjalizację pamięci współdzielonej oraz
 obsługę flagi:
 
 \begin{lstlisting}[language=C, caption=Inicjalizacja pamięci współdzielonej i flagi \texttt{warp\_finished}]
@@ -479,7 +546,7 @@ Jednak dopóki jest zapewniona zastępowalność bloków na SM, efekt nie wpływ
     \label{fig:tail_effect_3}
 \end{figure}
 
-\subsection{Serwer}
+\subsection{Program serwera}
 Główny cel serwera centralnego w równoległej wersji algorytmu Rho Pollarda, sprowadza się do
 przechowywania obliczonych punktów wyróżnionych oraz poszukiwania wśród nich kolizji.
 W mojej implementacji, jego zadania zostały rozszczerzone o generowanie punktów startowych
@@ -509,17 +576,17 @@ logarytmu dyskretnego
 
 \subsubsection*{Generacja punktów startowych}
 
-Początkowo punkty startowe były generowane za pomocą funkcji skrótu MD5 z operacją 
-modulo rzędu ciała, jednak bardziej wydajnym podejściem okazało się wykorzystanie 
-pakietu \texttt{random} z biblioteki standardowej języka Python. Pakiet ten 
-zapewnia wystarczającą losowość dla tego zastosowania, co umożliwia szybszą 
+Początkowo punkty startowe były generowane za pomocą funkcji skrótu MD5 z operacją
+modulo rzędu ciała, jednak bardziej wydajnym podejściem okazało się wykorzystanie
+pakietu \texttt{random} z biblioteki standardowej języka Python. Pakiet ten
+zapewnia wystarczającą losowość dla tego zastosowania, co umożliwia szybszą
 i efektywną generację punktów.
 
-Proces generacji punktów startowych odbywa się wyłącznie po stronie serwera. 
-Wygenerowane punkty, wraz z odpowiadającymi im ziarnami (\textit{seed}), są 
-przekazywane do klienta. Jeśli jednak wygenerowany punkt startowy spełnia od razu 
-kryteria punktu wyróżnionego, zostaje przekazany bezpośrednio do puli punktów 
-wyróżnionych i nie zajmuje miejsca wśród punktów startowych. Dzięki temu zasoby 
+Proces generacji punktów startowych odbywa się wyłącznie po stronie serwera.
+Wygenerowane punkty, wraz z odpowiadającymi im ziarnami (\textit{seed}), są
+przekazywane do klienta. Jeśli jednak wygenerowany punkt startowy spełnia od razu
+kryteria punktu wyróżnionego, zostaje przekazany bezpośrednio do puli punktów
+wyróżnionych i nie zajmuje miejsca wśród punktów startowych. Dzięki temu zasoby
 są lepiej wykorzystywane, a redundancja w obliczeniach jest zredukowana.
 
 Przykładowy kod generacji punktów w języku Python:
@@ -544,15 +611,15 @@ def generate_starting_points(instances, zeros_count):
 
 \subsubsection{Kolizje}
 
-W przypadku wykrycia kolizji serwer pobiera ziarna obu punktów i odtwarza 
-kolejne kroki algorytmu, które doprowadziły do ich znalezienia. W tym procesie 
-serwer oblicza wielokrotności punktów $P$ oraz $Q$, co pozwala na określenie 
-logarytmu dyskretnego. W rzadkich przypadkach, gdy obliczenie odwrotności modularnej 
-jest niemożliwe (np. mianownik wynosi $0$ w algorytmie Rho Pollarda), obliczenie 
-logarytmu dyskretnego może się nie powieść. 
+W przypadku wykrycia kolizji serwer pobiera ziarna obu punktów i odtwarza
+kolejne kroki algorytmu, które doprowadziły do ich znalezienia. W tym procesie
+serwer oblicza wielokrotności punktów $P$ oraz $Q$, co pozwala na określenie
+logarytmu dyskretnego. W rzadkich przypadkach, gdy obliczenie odwrotności modularnej
+jest niemożliwe (np. mianownik wynosi $0$ w algorytmie Rho Pollarda), obliczenie
+logarytmu dyskretnego może się nie powieść.
 
-Jeżeli jednak obliczenia zakończą się sukcesem, serwer wyznacza logarytm 
-dyskretny i wysyła sygnał do zakończenia dalszych obliczeń. Wynik końcowy jest 
+Jeżeli jednak obliczenia zakończą się sukcesem, serwer wyznacza logarytm
+dyskretny i wysyła sygnał do zakończenia dalszych obliczeń. Wynik końcowy jest
 następnie przekazywany na standardowe wyjście (\texttt{stdout}).
 
 Przykładowa implementacja funkcji obliczającej współczynniki $a$ i $b$ w Pythonie:
@@ -574,19 +641,19 @@ def calculate_ab(seed, precomputed_points: list[PrecomputedPoint]):
     return (a_sum, b_sum)
 \end{lstlisting}
 
-Funkcja \texttt{calculate\_ab} przyjmuje ziarno oraz listę wcześniej 
-obliczonych punktów. Kolejne wielokrotności punktów $P$ i $Q$ są sumowane wraz 
-z ich współczynnikami $a$ i $b$, aż do napotkania punktu wyróżnionego. Wynikowe 
-wartości są redukowane modulo rząd krzywej i zwracane jako współczynniki, które 
+Funkcja \texttt{calculate\_ab} przyjmuje ziarno oraz listę wcześniej
+obliczonych punktów. Kolejne wielokrotności punktów $P$ i $Q$ są sumowane wraz
+z ich współczynnikami $a$ i $b$, aż do napotkania punktu wyróżnionego. Wynikowe
+wartości są redukowane modulo rząd krzywej i zwracane jako współczynniki, które
 umożliwiają wyznaczenie logarytmu dyskretnego.
 
 \subsection{Logowanie}
 
-W celu monitorowania wydajności systemu oraz postępu obliczeń, zarówno w kodzie 
-klienta, jak i serwera, zaimplementowano mechanizm logowania. CUDA umożliwia 
-wypisywanie informacji na standardowe wyjście (\texttt{stdout}) za pomocą funkcji 
-\texttt{printf}, analogicznie jak w standardowym języku C. W głównym kernelu kodu 
-można aktywować logowanie, ustawiając odpowiednią flagę za pomocą dyrektywy 
+W celu monitorowania wydajności systemu oraz postępu obliczeń, zarówno w kodzie
+klienta, jak i serwera, zaimplementowano mechanizm logowania. CUDA umożliwia
+wypisywanie informacji na standardowe wyjście (\texttt{stdout}) za pomocą funkcji
+\texttt{printf}, analogicznie jak w standardowym języku C. W głównym kernelu kodu
+można aktywować logowanie, ustawiając odpowiednią flagę za pomocą dyrektywy
 \texttt{\#define logging}.
 
 Logowane dane w kernel'u obejmują:
@@ -606,8 +673,8 @@ Wed Sep 18 01:14:33 AM CEST 2024 STREAM 0, instance: 28214 found distinguish poi
 Wed Sep 18 01:14:33 AM CEST 2024 STREAM 0, instance: 24343 found distinguish point 0
 \end{verbatim}
 
-Dodatkowo, serwer po każdorazowym otrzymaniu danych od zakończonych obliczeń 
-w kernelu wypisuje informacje o łącznej liczbie punktów wyróżnionych, które 
+Dodatkowo, serwer po każdorazowym otrzymaniu danych od zakończonych obliczeń
+w kernelu wypisuje informacje o łącznej liczbie punktów wyróżnionych, które
 zgromadził do tej pory. Przykładowe logi generowane przez serwer:
 \begin{verbatim}
 Wed Sep 18 07:13:45 PM CEST 2024 Got new distinguish points
@@ -616,9 +683,9 @@ Wed Sep 18 07:13:45 PM CEST 2024 GPU worker 0 got task
 Wed Sep 18 07:13:45 PM CEST 2024 Got 957733 points
 \end{verbatim}
 
-Mechanizm logowania umożliwił dokładniejszą analizę wykorzystania zasobów GPU oraz 
-optymalne dostosowanie liczby wątków i bloków do struktury sprzętowej. Dane logowane 
-były zapisywane do pliku, co pozwoliło na dalsze przetwarzanie, takie jak mierzenie 
-wydajności i wizualizację wyników w formie wykresów. Wizualizacje te przedstawiają 
+Mechanizm logowania umożliwił dokładniejszą analizę wykorzystania zasobów GPU oraz
+optymalne dostosowanie liczby wątków i bloków do struktury sprzętowej. Dane logowane
+były zapisywane do pliku, co pozwoliło na dalsze przetwarzanie, takie jak mierzenie
+wydajności i wizualizację wyników w formie wykresów. Wizualizacje te przedstawiają
 między innymi sumę znalezionych punktów od czasu,
 co pozwoliło oszacować wydajność projektu.
