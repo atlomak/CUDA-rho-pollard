@@ -1,3 +1,4 @@
+\newpage
 \section{Wstęp teoretyczny}
 
 \subsection{Procesor graficzny}
@@ -82,7 +83,7 @@ w działaniach grupowych
 Krzywe eliptyczne zdefiniowane na liczbach rzeczywistych nie są kluczowe w
 systemach kryptograficznych \cite*{Stinson2021}, ale takie ustawienia
 pozwalają na prostsze przedstawienie niektórych zagadnień
-np. dodawnie punktów na krzywej.
+np. dodawanie punktów na krzywej.
 
 
 \subsubsection{Dodawanie punktów na krzywej eliptycznej}
@@ -142,10 +143,10 @@ jednak wszystkie działania są wykonywane na ciele $F_p$.
 
 \subsubsection{Problem logarytmu dyskretnego}
 Problem logarytmu dyskretnego (\textbf{DLP}) jest
-podstawą kryptosystemów oparych o grupy.
-Jednymi z bardziej znanych są kryptosystem ElGamala oraz protokół wymiany
+podstawą kryptosystemów opartych o grupy.
+Jednymi z bardziej znanych są kryptosystem El-Gamala oraz protokół wymiany
 kluczy Diffie-Hellmana'a.
-\\ Problem logarytmu dyskretnego można zdefiniować na grupach cyklicznych.
+Problem logarytmu dyskretnego można zdefiniować na grupach cyklicznych.
 zarówno na grupie multiplikatywnej $(\mathbb{G},\cdot)$
 oraz grupie addytywnej $(\mathbb{G}, +)$, przy odpowiednim zdefiniowaniu działań grupowych.
 
@@ -158,7 +159,7 @@ algorytm, który znajduje $x$ w czasie wielomianowym\cite{Stinson2021}.
 
 
 \subsubsection{Problem logarytmu dyskretnego na krzywej eliptycznej}
-W przypadku krypografii opartej o krzywe eliptyczne, DLP dotyczy cykliczej \\
+W przypadku kryptografii opartej o krzywe eliptyczne, DLP dotyczy cyklicznej \\
 grupy addytywnej $(\mathbb{E},+)$ zdefiniowanej na krzywej eliptycznej.
 Aby utworzyć taką grupę, wybieramy punkt $P$ na krzywej eliptycznej $\mathbb{E}$,
 który będzie generatorem grupy. Wtedy grupa addytywna $\mathbb{E}$ jest generowana przez
@@ -225,7 +226,7 @@ Sekwencyjna wersja algorytmu słabo się skaluje w przypadku zwiększania ilośc
 osiągając jedynie przyśpieszenie rzędu $O(\sqrt{m})$ dla $m$ procesorów \cite{Oorschot}.
 Dlatego w swojej pracy wykorzystałem równoległą wersję algorytmu, zaproponowaną przez Van Oorschota i Wienera \cite{Oorschot}.
 
-\subsubsection{Równoległy algorytm Rho Pollarda}
+\subsubsection{Równoległy algorytm Rho Pollard'a}
 Równoległa wersja algorytmu Rho Pollard'a, zakłada zastosowanie wielu równolegle działających
 procesorów, które niezależnie od siebie wykonują \textit{spacer losowy} po krzywej eliptycznej,
 w poszukiwaniu \textit{punktów wyróżnionych}. Gdy znajdą taki punkt, przekazują go do serwera centralnego,
@@ -240,8 +241,8 @@ spowoduje bardzo szybkie zapełnienie pamięci centralnego serwera a za wąski s
 
 \subsubsection{Adding Walk}
 
-Adding Walk jest modyfikacją funkcji iteracyjnej $f$ używanej w algorytmie Pollard’s 
-Rho do obliczania kolejnych punktów na krzywej eliptycznej. Funkcja ta opiera się 
+Adding Walk jest modyfikacją funkcji iteracyjnej $f$ używanej w algorytmie Rho Pollard’a 
+do obliczania kolejnych punktów na krzywej eliptycznej. Funkcja ta opiera się 
 na dodawaniu w każdej iteracji punktów z predefiniowanej tablicy punktów, co 
 zapewnia wysoką efektywność oraz równomierny rozkład iteracji w grupie. Wprowadzenie 
 Adding Walk, jak pokazano w pracy Teske \cite{Teske2000}, poprawia wydajność w 

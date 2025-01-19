@@ -1,7 +1,4 @@
 \newpage
-
-\newpage
-
 \section{Wprowadzenie}
 
 Wraz z rosnącą potrzebą zapewnienia poufności i integralności danych w systemach
@@ -35,7 +32,7 @@ przetwarzania danych. Platforma CUDA, opracowana przez firmę NVIDIA, umożliwia
 wykorzystanie mocy obliczeniowej GPU do realizacji zadań takich jak
 implementacja algorytmów kryptograficznych oraz analiza ich odporności na ataki.
 CUDA pozwala na masywnie równoległe przetwarzanie danych, co ma kluczowe znaczenie
-w implementacji algorytmu Rho Pollarda, który w wersji równoległej, pozwala na efektywne
+w implementacji algorytmu Rho Pollard'a, który w wersji równoległej, pozwala na efektywne
 wykorzystanie możliwości GPU.
 
 Chociaż GPU nie oferują wydajności i efektywności energetycznej 
@@ -50,10 +47,10 @@ Celem tej pracy jest realizacja systemu korzystającego z koprocesora GPU,
 w celu przyśpieszenia obliczeń przy
 rozwiązywaniu problemu logarytmu dyskretnego.
 Implementacja została zoptymalizowana i dostosowana pod obliczenie logarytmu
-dyskretnego na krzywej eliptycznej ECCp-79, zaproponowanej w challange'u Certicom.
+dyskretnego na krzywej eliptycznej ECCp-79, zaproponowanej w challange'u Certicom \cite{certicom-challange}.
 \par
 Głównymi elementami stworzonego systemu
-jest program klienta wykonującego część algorytmu Rho Pollarda na karcie graficznej Nvidia
+jest program klienta wykonującego część algorytmu Rho Pollard'a na karcie graficznej Nvidia
 z wykorzystaniem technologii CUDA i języka programowania CUDA C++,
 oraz program serwera działający na CPU, odpowiedzialny za zarządzanie klientami i zbieranie wyników.
  Wyniki implementacji zostały porównane z innymi pracami

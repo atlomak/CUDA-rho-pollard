@@ -1,3 +1,4 @@
+\newpage
 \section{Wyniki}
 \subsection{Testy implementacji}
 
@@ -16,14 +17,14 @@ problemu logarytmu dyskretnego dla krzywej ECCp79. Pozwoliły one na upewnienie 
 
 W tym celu wykorzystano środowiska PyTest oraz SageMath do przeprowadzenia testów
 funkcjonalnych, weryfikujących poprawność operacji na krzywych eliptycznych
-oraz pierwszych kroków algorytmu Rho Pollarda.
+oraz pierwszych kroków algorytmu Rho Pollard'a.
 
 Testy obejmowały następujące aspekty:
 \begin{itemize}
     \item Poprawność dodawania punktów na krzywej eliptycznej:
           Wyniki obliczeń programu klienta były porównywane z wynikami uzyskanymi
           w SageMath.
-    \item Weryfikacja pierwszych kilkuset iteracji algorytmu Rho Pollarda:
+    \item Weryfikacja pierwszych kilkuset iteracji algorytmu Rho Pollard'a:
           Sprawdzano zgodność wyników generowanych przez implementację z oczekiwanymi
           wartościami teoretycznymi.
     \item Sprawdzenie integralności przesyłanych danych pomiędzy serwerem a
@@ -62,7 +63,7 @@ po 1 minucie oraz 5 minutach.
 \end{table}
 
 Na podstawie wyników testów oszacowano liczbę operacji dodawania punktów na
-sekundę w algorytmie Rho Pollarda. Prawdopodobieństwo znalezienia punktu wyróżnionego,
+sekundę w algorytmie Rho Pollard'a. Prawdopodobieństwo znalezienia punktu wyróżnionego,
 gdy 20 najmłodszych bitów współrzędnej $x$ wynosi $0$, można określić jako
 $$
     P = 2^{-20}.
@@ -83,9 +84,8 @@ Najważniejszym wyznacznikiem osiągnięcia założonego celu tej pracy było
 znalezienie poprawnego rozwiązania ECDLP dla krzywej z challenge'u Certicom ECCp79.
 Po zweryfikowaniu poprawności implementacji na znacznie mniejszych rozmiarach
 krzywych eliptycznych, przystąpiłem do przeprowadzenia obliczeń dla docelowego
-problemu. Proces ten wymagał wykonania dużej liczby iteracji algorytmu Rho Pollarda,
+problemu. Proces ten wymagał wykonania dużej liczby iteracji algorytmu Rho Pollard'a,
 a jego wyniki zostały szczegółowo udokumentowane.
-
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\textwidth]{img/first_attempt.png}
@@ -96,7 +96,6 @@ a jego wyniki zostały szczegółowo udokumentowane.
 Poniżej przedstawiono wyniki pięciu niezależnych prób obliczenia ECDLP dla
 krzywej ECCp79, wskazujące liczbę znalezionych punktów wyróżnionych do momentu
 znalezienia kolizji oraz czas trwania obliczeń.
-
 \begin{table}[H]
     \centering
     \caption{Wyniki obliczeń ECDLP dla krzywej ECCp79}
@@ -122,7 +121,6 @@ weryfikację przy użyciu oprogramowania SageMath. Weryfikacja polegała na
 podstawieniu uzyskanego wyniku logarytmu dyskretnego do równania punktowego
 na krzywej eliptycznej i sprawdzeniu, czy generuje on punkt publiczny
 zgodny z założeniami challenge'u Certicom ECCp79.
-
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{img/sage_check_full.png}
@@ -153,3 +151,46 @@ Uzyskany wynik na poziomie 1153649 jest bliski wartości oczekiwanej. Rozbieżno
 liczby przeprowadzonych prób oraz ograniczonej liczby punktów wstępnie obliczonych.
 Wydajność obliczeń jest zgodna z wynikami otrzymanymi podczas testów wydajności na ograniczonej liczbie iteracji algorytmu.
 Najszybsze znalezienie logarytmu dyskretnego zajeło mniej niż 3 godziny, co jest bardzo zadowalającym wynikiem.
+
+\subsection{Porównanie wyników}
+Praca najbardziej zbliżona tematycznie do mojej to \textit{Solving prime-field 
+ECDLPs on GPUs with OpenCL} autorstwa Erika Bossa \cite{Boss2015}. W odróżnieniu 
+od mojej pracy, implementacja wykorzystana przez Bossa opierała się na technologii 
+OpenCL i była zoptymalizowana pod kątem kart graficznych AMD, jednak również 
+dotyczyła problemu ECDLP dla krzywych modulo liczby pierwsze z Certicom Challenge.
+
+Wyniki mojej pracy, zrealizowanej w 2024 roku przy użyciu karty NVIDIA GTX 2070 
+Super, pokazują wydajność na poziomie 87,7 milionów operacji na sekundę. Dla 
+porównania, praca Erika Bossa z 2015 roku osiągnęła wydajność 109 milionów iteracji 
+na sekundę dla karty AMD.
+Mimo niewielkiej różnicy, moja implementacja osiąga wynik, zbliżony rzędem wielkości do
+wyniku z tej pracy.
+Wyniki uzyskane przez Bossa wskazują, że obliczenie 
+problemu logarytmu dyskretnego dla krzywej 112-bitowej zajęłoby odpowiednio 19,81 
+lat dla karty AMD i 31,77 lat dla karty NVIDIA.
+
+Na podstawie wyników uzyskanych w mojej pracy, ekstrapolując wydajność z krzywej 
+79-bitowej, rozwiązanie ECDLP dla krzywej 112-bitowej zajęłoby około 32 lat na GPU 
+NVIDIA GTX 2070 Super. Więc w przypadku kart graficznych Nvidia, oba wyniki są prawie identyczne,
+pomimo nieznacznie nowszej wersji w przypadku mojej karty graficznej.
+
+$$
+\frac{\sqrt{\pi \cdot \frac{2^{112}}{2}}}{87.7 \cdot 10^{6} \cdot 3600 \cdot 24 \cdot 365} = 32.65
+$$
+
+Różnica może wynikać z większej optymalizacji pod konkretną kartę graficzną
+w przypadku pracy Boss'a oraz zastosowania techniki \textit{Negation Map} która pozwala przyśpieszyć czas obliczeń
+o współczynnik $\sqrt{2}$ \cite{Negation}.
+
+Wiele prac o podobnej tematyce również wykorzystuje GPU lub układy FPGA do
+obliczania logarytmu dyskretnego. Jednak zazwyczaj dotyczą one krzywej
+eliptycznej na ciele binarnym \cite{Wenger2014,FPGA2008,Majkowski2008}. W
+takim przypadku porównanie traci na wartości, ponieważ na ciele binarnym
+można zastosować znacznie więcej optymalizacji przy operacjach na krzywej.
+
+W celach historycznych warto wspomnieć, że pierwsze złamanie krzywej ECCp79
+udało się w 1997 roku \cite{certicom-cracked}. W tym celu wykorzystano kilka komputerów
+współpracujących ze sobą, z czego pojedyncza stacja osiągała wydajność na
+poziomie 25 bilionów operacji na dzień. Daje to około 289351,85 operacji na
+sekundę, w porównaniu do 87,7 milionów operacji na sekundę w mojej
+implementacji.
