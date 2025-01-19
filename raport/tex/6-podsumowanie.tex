@@ -1,2 +1,36 @@
 \newpage
-\section{Podsumowanie}
+\section{Podsumowanie oraz dalsze usprawnienia}
+
+Realizacja pracy pozwoliła mi na zgłębienie zagadnień związanych ze
+współczesną kryptografią oraz jej praktyczną implementację. Dodatkowo,
+poznałem techniki akceleracji obliczeń z wykorzystaniem GPU. Jestem
+usatysfakcjonowany z efektów pracy, ponieważ udało się zrealizować wszystkie
+założone cele. Obliczenie poprawnego rozwiązania dla wyzwania Certicom,
+osiągając wydajność porównywalną z podobnymi pracami, uważam za spory sukces,
+biorąc pod uwagę, że była to moja pierwsza styczność z technologią CUDA oraz
+kryptografią opartą o krzywe eliptyczne. W pracy pozostaje jednak miejsce na
+potencjalne optymalizacje i usprawnienia.
+
+Wykorzystanie lżejszych bibliotek niż pakiet SageMath pozwoliłoby na
+łatwiejsze uruchomienie rozwiązania na innych platformach, bez potrzeby
+czasochłonnej kompilacji całego pakietu obliczeniowego, którego znaczna
+część nie jest wykorzystywana.
+Zastosowanie redukcji Barrett'a do operacji dzielenia modulo $p$ pozwoliłoby
+jeszcze bardziej zwiększyć wydajność obliczeń na ciele. Ponieważ wszystkie
+obliczenia są wykonywane na tych samych parametrach ciała, przeliczenie
+specjalnej wartości wymaganej przez tę technikę odbyłoby się tylko raz na
+początku obliczeń.
+
+Kolejnym miejscem na potencjalne usprawnienia jest optymalizacja wykorzystania 
+rejestrów w kernel'u CUDA. Obecna implementacja ma niewielką liczbę rejestrów,
+które musiały być przerzucone przez kompilator do wolniejszej pamięci
+globalnej. Prawdopodobnie uważna optymalizacja oraz dokładniejsza analiza z
+pomocą profiler'a \textit{NVIDIA Nsight Systems} pozwoliłaby zredukować ilość
+"rozlanych" rejestrów, ograniczając narzut związany z niższą
+przepustowością pamięci globalnej, oraz zmniejszyć liczbę rozgałęzień w kodzie.
+
+Praca pokazała, że GPU umożliwia osiągnięcie wysokiej wydajności w obliczeniach
+kryptograficznych, jednak pomimo rosnącej mocy obliczeniowej oraz wysokiej dostępności
+GPU, rozmiar kluczy stosowanych we współczesnej kryptografii nadal zapewnia
+odpowiedni poziom bezpieczeństwa. W efekcie złamanie kryptosystemu opartego na
+ECC w sensownym czasie pozostaje praktycznie niemożliwe.
