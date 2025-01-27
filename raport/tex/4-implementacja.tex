@@ -595,7 +595,7 @@ kryteria punktu wyróżnionego, zostaje przekazany bezpośrednio do puli punktó
 wyróżnionych i nie zajmuje miejsca wśród punktów startowych (linia 14). Dzięki temu zasoby
 są lepiej wykorzystywane, a redundancja w obliczeniach jest zredukowana.
 
-\begin{minipage}{\linewidth}
+\newpage
 \begin{lstlisting}[language=Python, caption=Generacja punktów startowych, label=code:point-gen]
 def generate_starting_points(instances, zeros_count):
     distinguish_points = []
@@ -613,7 +613,6 @@ def generate_starting_points(instances, zeros_count):
             distinguish_points.append((x, y, seed))
     return starting_points, distinguish_points
 \end{lstlisting}
-\end{minipage}
 
 \subsubsection{Kolizje}
 

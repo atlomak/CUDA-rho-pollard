@@ -2,6 +2,24 @@
 \section{Podsumowanie oraz dalsze usprawnienia}  
 Celem tej pracy było zaimplementowanie systemu,
 który z wykorzystaniem GPU jest w stanie rozwiązać ECDLP na ECCp79 w jak najkrótszym czasie.
+\par
+Aby osiągnąć ten cel, niezbędne było zapoznanie się z wieloma publikacjami, które
+przedstawiają współczesne sposoby optymalizacji obliczeń kryptograficznych oraz
+najwydajniejsze techniki projektowania systemów do kryptoanalizy krzywych eliptycznych.
+Pozwoliło to na zastosowanie bardziej optymalnego algorytmu Rho Pollard'a, w wersji Addition walk,
+który znacznie lepiej działa w przypadku architektury SIMD jaką jest GPU.
+Wykorzystanie optymalizacji, takich jak Montgomery Trick, również pozwoliło
+jeszcze bardziej zwiększyć wydajność obliczeń.
+
+Opracowana koncepcja oraz opis implementacji, szczegółowo przedstawiają sposób
+działania zarówno głównego programu do obliczeń kryptograficznych, jak i serwera
+wraz z całą architekturą niezbędną do uruchomienia całego systemu.
+Wszelkie napotkane trudności oraz decyzje projektowe, zostały dokładnie opisane,
+co pozwala na odtworzenie podobnego systemu oraz wyjaśnia niektóre zabiegi implementacje.
+Wszystkie moduły składające się na system, zostały dokładnie przetestowane oraz zweryfikowane przy
+pomocy szerokiej gamy testów. Dodatkowo działanie zostało zweryfikowane
+poprzez prawidłowe rozwiązanie założonego problemu ECDLP.
+
 Praca spełniła wszystkie założone cele, osiągając przy tym satysfakcjonujące wyniki.
 Poprawne rozwiązanie wyzwania Certicom, przy jednoczesnym osiągnięciu wydajności porównywalnej z  
 podobnymi pracami, stanowi istotny sukces.

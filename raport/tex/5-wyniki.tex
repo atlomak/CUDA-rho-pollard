@@ -123,7 +123,7 @@ na krzywej eliptycznej i sprawdzeniu, czy generuje on punkt
 zgodny z założeniami wyzwania Certicom ECCp79.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{img/sage_check_full.png}
+    \includegraphics[width=0.8\textwidth]{img/sage_verify_white.png}
     \caption{Weryfikacja wyniku w SageMath}
     \label{fig:sage_verification}
 \end{figure}
@@ -159,7 +159,7 @@ Implementacja wykorzystana przez Boss'a opierała się na technologii
 OpenCL i była zoptymalizowana pod kątem kart graficznych AMD, jednak również
 dotyczyła problemu ECDLP dla krzywych modulo liczby pierwsze z Certicom Challenge.
 Praca była zoptymalizowana pod konkretną kartę graficzną
-oraz zastosowała technikę \textit{Negation Map} która pozwala przyśpieszyć czas obliczeń
+oraz zastosowała technikę \textit{Negation Map} która pozwala skrócić czas obliczeń
 o współczynnik $\sqrt{2}$ \cite{Negation}.
 Osiągnęła ona wydajność 109 milionów iteracji dodawania punktów na sekundę dla karty AMD.
 Wyniki uzyskane przez Bossa wskazują, że obliczenie
