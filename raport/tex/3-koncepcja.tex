@@ -12,7 +12,7 @@ Architektura została zaprojektowana w sposób umożliwiający wykorzystanie wie
 podłączonych do komputera, co dodatkowo zwiększa wydajność obliczeń.
 
 \subsection{Klient}
-Klient składa się z dwóch wyróżnialnych części.
+Klient składa się z dwóch wyróżnionych części.
 Część odpowiedzialna za obliczenia na krzywej została napisana w języku
 CUDA C++. W celu optymalizacji obliczeń pod platformę GPU, algorytm oblicza
 kolejne punkty za pomocą \textit{Adding Walk}, opisanego w poprzednim
@@ -21,7 +21,7 @@ które umożliwiają przeprowadzanie obliczeń na krzywej eliptycznej.
 
 Ponieważ w języku C oraz CUDA C++ nie istnieje typ danych pozwalający na
 przechowywanie liczb większych niż 64-bitowe, konieczne jest odpowiednie
-zaimplementowanie nowych typów danych oraz samych operacji.
+zaimplementowanie nowych typów danych oraz samych operacji na \textit{długich liczbach}.
 
 Aby rozpocząć obliczenia, program klienta otrzymuje następujące dane wejściowe:
 \begin{itemize}
@@ -30,27 +30,27 @@ Aby rozpocząć obliczenia, program klienta otrzymuje następujące dane wejści
     \item tablicę punktów wstępnie obliczonych potrzebnych do \textit{Adding Walk},
     \item parametry krzywej.  
 \end{itemize}
-Ziarno używane do generowania punktów startowych jest w postaci liczby przez
-którą należy zwielokrotnić punkt $P$ aby otrzymać dany punkt startowy.
+Ziarno używane do generowania punktów startowych jest w postaci liczby, przez
+którą należy zwielokrotnić punkt $P$, aby otrzymać dany punkt startowy.
 Po otrzymaniu danych, program uruchamia kernel CUDA, odpowiedzialny za szukanie punktów wyróżnionych.
-Każdy uruchomiony wątek, niezależnie od pozostałych przeprowadza obliczenia algorytmu, aż do momentu
+Każdy uruchomiony wątek, niezależnie od pozostałych, przeprowadza obliczenia algorytmu, aż do momentu
 gdy znajdzie punkt wyróżniony.
 Jako wynik działania, program zwraca
 tablicę punktów wyróżnionych, wraz z odpowiadającymi im ziarnami punktów startowych, od których zaczeły
 się obliczenia prowadzące do danego wyniku. \\
 Druga część programu klienta, jest napisana w języku Python i stanowi wysokopoziomowy interfejs do komunikacji
 z serwerem. W jej skład wchodzi moduł odpowiedzialny za wywoływanie skompilowanej części kodu za pomocą ABI języka C,
-oraz kod funkcji, która jest uruchamiana w jako oddzielny wątek z poziomu programu serwera. W celu komunikacji
+oraz kod funkcji, która jest uruchamiana jako oddzielny wątek z poziomu programu serwera. W celu komunikacji
 między wątkami wykorzystywana jest implementacja kolejki asynchronicznej z biblioteki standardowej.
-Po uruchomieniu nowego wątku, na początku działania otrzymuje on parametry krzywej i działa
-on aż do znalezienia rozwiązania i zakończenia wszystkich wątków przez serwer.
-W trakcie działania, wątek klienta przyjmuje kolejne punkty startowe przesłane przez serwer za pomocą kolejki
+Po uruchomieniu nowego wątku, na początku działania otrzymuje on parametry krzywej i pracuje
+on aż do znalezienia rozwiązania ECDLP i zakończenia wszystkich wątków przez serwer.
+W trakcie pracy, wątek klienta przyjmuje kolejne punkty startowe przesłane przez serwer za pomocą kolejki
 oraz zwraca obliczone punkty wyróżnione wraz z ziarnami.
 
 \subsection{Serwer}
 Serwer, w całości zaimplementowany w języku Python, pełni kluczową rolę w systemie,
 zajmując się gromadzeniem punktów wyróżnionych przesyłanych przez działające wątki klientów oraz wyszukiwaniem
-kolizji pomiędzy nimi. Jego zadania obejmują również zarządzanie działaniem
+kolizji pomiędzy nimi. Jego zadania obejmują również zarządzanie pracą
 wątków klientów, polegające na dynamicznym uruchamianiu odpowiedniej liczby instancji
 oraz zapewnianiu mechanizmów komunikacji za pomocą kolejek.
 Do efektywnego przechowywania punktów wyróżnionych zastosowano strukturę danych w formie
@@ -64,18 +64,16 @@ co zapewnia spójność wyników. Dzięki temu, na podstawie ziarna punktu start
 rezultaty jak klient.
 W przeciwieństwie do klienta,
 serwer dodatkowo śledzi sumę wielokrotności punktów $P$ i $Q$,
-co jest kluczowe do późniejszego obliczenia logarytmu dyskretnego.
-Mechanizm ten pozwoli na precyzyjne wyliczenie logarytmu dyskretnego po wykryciu kolizji, dzięki możliwości
-odwzorowania znalezionych punktów na kombinację wielokrotności tych punktów bazowych.
+co jest niezbędne do późniejszego obliczenia logarytmu dyskretnego.
 
 \subsection{Przepływ działania}
-W momencie uruchomienia programu, serwer generuje wyznaczoną ilość punktów wstępnie obliczonych.
+W momencie uruchomienia programu, serwer generuje wyznaczoną liczbę punktów wstępnie obliczonych.
 Punkty te będą przechowywane przez serwer aż do końca działania programu, wraz z parametrami, które
 wygenerowały każdy z tych punktów. Następnie serwer uruchamia w wielu wątkach funkcję napisaną w pythonie, która
 odpowiada za nadzorowanie pracy programu klienta GPU. Każda z uruchomionych funkcji w momencie startu
 otrzymuje adres dwóch kolejek, które będą służyły do komunikacji z głównym wątkiem serwera. \\
 Po uruchomieniu wątków, serwer rozpoczyna działanie pętli, która zakończy się dopiero po znalezieniu
-rozwiązania ECDLP. W trakcie jej działania, serwer wykonuje
+rozwiązania ECDLP. W trakcie jej działania, serwer wykonuje następujące kroki:
 \begin{enumerate}
     \item Generacja nowych punktów startowych
     \item Przekazanie punktów startowych do kolejki zadań
@@ -84,7 +82,8 @@ rozwiązania ECDLP. W trakcie jej działania, serwer wykonuje
     \item Dodanie punktów do bazy punktów znalezionych
 \end{enumerate}
 W momencie gdy serwer znajdzie kolizję dwóch punktów, podejmuje on próbę znalezienia ECDLP.
-Jeżeli wynik został poprawnie obliczony, serwer kończy działanie całego programu, wraz z wątkami klientów. \\
+Jeżeli wynik został poprawnie obliczony, serwer kończy działanie całego programu, wraz z wątkami klientów.
+\par
 Podprogramy klientów, uruchomione w osobnych wątkach,
 również działają w pętli, w trakcie której wykonują następujące kroki:
 \begin{enumerate}

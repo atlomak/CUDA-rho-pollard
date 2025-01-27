@@ -6,20 +6,20 @@ Procesory graficzne są specjalnym rodzajem procesorów,
 pierwotnie stworzonych do akceleracji obliczeń graficznych.
 Obliczenia te charakteryzują się dużą liczbą względnie prostych, podobnych operacji,
 które mogą być przeprowadzone równolegle.
-Taki model obliczeń nosi nazwę SIMD (Single Instruction Multiple Data)
+Taki model obliczeń nosi nazwę \textbf{SIMD} ( \textit{Single Instruction Multiple Data})
 i oznacza równoległe wykonywanie tej samej operacji dla wielu różnych danych wejściowych.
 Współczesne karty graficzne są zaprojektowanie do wykorzystania
 ich możliwości równoległych obliczeń w znacznie szerszym obszarze niż
 pierwotny cel akceleracji grafiki komputerowej.
 Technologie \textit{OpenCL} oraz \textit{CUDA} umożliwiają
-programowanie GPGPU (\textit{general purpose GPU}) w
+programowanie GPU w
 dziedzinach takich jak obliczenia naukowe, machine learning czy kryptografia.
 
 \par
-W pracy, w celu przeprowadzenia ataku na krzywą eliptyczną, wykorzystałem
+W pracy, w celu przeprowadzenia ataku na krzywą eliptyczną, wykorzystano
 algorytm \textit{Rho Pollard'a}, który z niewielkimi modyfikacjami można bardzo skutecznie wykonywać
 równolegle. Z tego powodu wykorzystanie GPU do kryptoanalizy, pozwala znacznie przyśpieszyć czas
-obliczeń. W celu stworzenia programu na GPU wykorzystałem technologię Nvidia CUDA, głównie ze względu
+obliczeń. W celu stworzenia programu na GPU użyto technologii Nvidia CUDA, głównie ze względu
 na znacznie lepiej rozwinięty ekosystem oraz dostępność materiałów w internecie.
 Standard OpenCL w przeciwieństwie do CUDA, jest tworzony na zasadach \textit{open-source} oraz może zostać
 wykorzystany do programowania kart graficznych innych producentów. Niestety jest zauważalnie
@@ -27,9 +27,9 @@ gorzej wspierany w przypadku kart graficznych Nvidia.
 \par
 \subsubsection{Model programowania CUDA}
 Program napisany w CUDA, składa się z jednego lub więcej
-\textit{kernel'a} - funkcji programu, która będzie się wykonywać równolegle na GPU, na każdym z uruchomionych wątków.
+\textit{kernel'i} - funkcji programu, która będzie się wykonywać równolegle na GPU, na każdym z uruchomionych wątków.
 Wątki są grupowane w \textit{bloki}, które mogą się składać z 1 do 1024 wątków w przypadku \textit{CUDA 7.5} \cite{CudaDeveloper}.
-Następnie bloki są uruchamiane na dostępnych \b{SM} - \textit{streaming multiprocessor}.
+Następnie bloki są uruchamiane na dostępnych jednostkach \textbf{SM} ( \textit{streaming multiprocessor}).
 Karty graficzne Nvidia składają się zazwyczaj z kilkunastu SM, które mogą równocześnie uruchomić wiele
 bloków, co pozwala na równoczesne wykonywanie kilkuset wątków.
 Wątki w ramach jednego bloku dzielą pamięć współdzieloną \textit{shared memory} oraz wykonują się równocześnie.
@@ -46,7 +46,7 @@ Jest to szczególnie istotne dla wydajności działania programu na GPU \cite{Cu
 Kolejnym ważnym elementem który mocno wpływa na wydajność
 programu, jest odpowiedni dostęp do pamięci.
 Tak samo jak w zwykłym procesorze, GPU ma kilka warstw
-pamięci które różnią się rozmiarem oraz czasem dostępu.
+pamięci, które różnią się rozmiarem oraz czasem dostępu.
 W CUDA można wyróżnić 3 najważniejsze warstwy pamięci:
 \begin{itemize}
     \item Rejestry - najszybszy rodzaj pamięci, dostępny w ramach pojedynczego wątku.
@@ -54,7 +54,7 @@ W CUDA można wyróżnić 3 najważniejsze warstwy pamięci:
           uruchomienia wielu wątków równocześnie. Jeżeli program używa wiecej rejestrów niż jest dostępne,
           może wystąpić \textit{register spilling}, który wprowadza znaczne opóźnienia.
     \item \textit{Shared memory} - szybka pamięć współdzielona, która jest wspólna dla wątków w danym bloku. Jest ona ograniczona
-          przez ilość pamięci w SM, na karcie graficznej z CUDA 7.5 jej rozmiar wynosi 64 KB \cite{CudaDeveloper}.
+          przez ilość pamięci w SM. Na karcie graficznej z CUDA 7.5 jej rozmiar wynosi 64 KB \cite{CudaDeveloper}.
           Stosowana jest w przypadku, gdy wiele wątków musi się ze sobą komunikować lub w celu cache'owania danych
           i ograniczenia dostępu do znacznie wolniejszej pamięci globalnej.
           Zbyt duży rozmiar wykorzystywanej pamięci współdzielonej ogranicza ilość bloków które mogą jednocześnie się
@@ -78,9 +78,10 @@ w działaniach grupowych
 \begin{figure}[H]
     \centering \includegraphics[width=0.8\linewidth]{sage/krzywa_-4_2.png}
     \caption{Krzywa eliptyczna $y^2=x^3-4+2$ nad ciałem liczb rzeczywistych}
+    \label{fig:krzywa_rel}
 \end{figure}
 
-Krzywe eliptyczne zdefiniowane na liczbach rzeczywistych nie są kluczowe w
+Krzywe eliptyczne zdefiniowane na liczbach rzeczywistych (rys. \ref{fig:krzywa_rel}) nie są kluczowe w
 systemach kryptograficznych \cite*{Stinson2021}, ale takie ustawienia
 pozwalają na prostsze przedstawienie niektórych zagadnień
 np. dodawanie punktów na krzywej.
@@ -94,16 +95,17 @@ elementu neutralnego.
 \indent
 Geometrycznie, dodawanie punktów na krzywej eliptycznej nad ciałem liczb rzeczywistych można przedstawić
 jako połączenie dwóch punktów $P$ i $Q$ prostopadłą linią, która przecina krzywą w trzecim
-punkcie, $R'$. Następnie, wynikowy punkt $R$, będący sumą $P+QP+Q$, znajdujemy przez
-odbicie punktu $R'$ względem osi $x$. W przypadku podwojenia punktu, czyli dodawania
+punkcie, $R'$. Następnie, wynikowy punkt $R$, będący sumą $P+Q$, znajdujemy przez
+odbicie punktu $R'$ względem osi $x$ (rys. \ref{fig:krzywa_add}). W przypadku podwojenia punktu, czyli dodawania
 punktu P do siebie samego, rysujemy styczną do krzywej w punkcie $P$, która przecina
 krzywą w nowym punkcie. Odbicie tego punktu względem osi $x$ daje nam wynik $2P$ \cite{Algorytmy}\cite{Stinson2021}.
 \begin{figure}[!h]
     \centering \includegraphics[width=0.8\linewidth]{sage/elliptic_rational_point_addition.png}
     \caption{P + Q na krzywej eliptycznej $y^2+y=x^3-x^2+2x$}
+    \label{fig:krzywa_add}
 \end{figure}
 \par
-Definiując dodawanie punktów na krzywej eliptycznej w sposób algebraiczny otrzymujemy następujące wzory:
+Definiując dodawanie punktów na krzywej eliptycznej w sposób algebraiczny, otrzymujemy następujące wzory:
 \begin{enumerate}
     \item Przypadek, gdy \( P \neq Q \):
           \begin{align}
@@ -127,8 +129,9 @@ Dodatkowo odwrotność punktu na krzywej $P$ definiujemy jako $-P = (x, -y)$ \ci
 
 \subsubsection{Krzywe eliptyczne na ciele skończonym}
 Krzywe eliptyczne zdefiniowane na ciele skończonym $F_p$ oraz $F_{p^n}$ mają kluczowe znaczenie w kryptografii \cite{Stinson2021}.
-W swojej pracy skupiłem się wyłącznie na krzywych zdefiniowanych na ciele skończonym $F_p$ gdzie $p$ jest liczbą pierwszą. \\
-Wykres krzywej eliptycznej nad ciałem $F_p$ nie przypomina krzywej zdefiniowanej na liczbach rzeczywistych.
+Praca ta skupia się wyłącznie na krzywych zdefiniowanych na ciele skończonym $F_p$ gdzie $p$ jest liczbą pierwszą.
+Wykres krzywej eliptycznej nad ciałem $F_p$ (rys. \ref{fig:krzywa_fp}),
+nie przypomina krzywej zdefiniowanej na liczbach rzeczywistych.
 Krzywa taka składa się z dyskretnych punktów, których współrzędne należą do ciała
 na którym jest opisana.
 Operacje na krzywej nad ciałem skończonym są zdefiniowane
@@ -137,28 +140,29 @@ jednak wszystkie działania są wykonywane na ciele $F_p$.
 \begin{figure}[!h]
     \centering \includegraphics[width=0.8\linewidth]{sage/ec_2_11-9.png}
     \caption{Krzywa eliptyczna $y^2=x^3-4+2$ nad $GF(2^{11} - 9)$}
+    \label{fig:krzywa_fp}
 \end{figure}
 
 
 \subsubsection{Problem logarytmu dyskretnego}
-Problem logarytmu dyskretnego (DLP) jest
-podstawą kryptosystemów opartych o grupy.
+Problem logarytmu dyskretnego \textbf{DLP} ( \textit{Discrete Logarithm Problem})
+jest podstawą kryptosystemów opartych na grupach.
 Jednymi z bardziej znanych są kryptosystem El-Gamala oraz protokół wymiany
-kluczy Diffie-Hellmana'a \cite[text]{Stinson2021,Blake2005}.
-Problem logarytmu dyskretnego można zdefiniować na grupach cyklicznych.
+kluczy Diffie-Hellmana'a \cite{Stinson2021,Blake2005}.
+Problem logarytmu dyskretnego można zdefiniować na grupach cyklicznych,
 zarówno na grupie multiplikatywnej $(\mathbb{G},\cdot)$
-oraz grupie addytywnej $(\mathbb{G}, +)$, przy odpowiednim zdefiniowaniu działań grupowych.
+jak i na grupie addytywnej $(\mathbb{G}, +)$, przy odpowiednim zdefiniowaniu działań grupowych.
 
-Jeżeli G jest grupą cykliczną a $\gamma$ jej generatorem, to logarytmem dyskretnym
+Jeżeli G jest multiplikatywną grupą cykliczną a $\gamma$ jej generatorem, to logarytmem dyskretnym
 elementu $\alpha \in G$ nazywamy najmniejszą nieujemną liczbę całkowitą $x$ taką, że:
 \[x = \log_{\gamma}{\alpha}\]
 
-Uważa się, że problem logarytmu dyskretnego jest trudny, ponieważ nie istnieje
+Uważa się, że problem logarytmu dyskretnego jest trudny obliczeniowo, ponieważ nie istnieje
 algorytm, który znajduje $x$ w czasie wielomianowym\cite{Stinson2021}.
 
 
 \subsubsection{Problem logarytmu dyskretnego na krzywej eliptycznej}
-W przypadku kryptografii opartej o krzywe eliptyczne, DLP dotyczy cyklicznej \\
+W przypadku kryptografii opartej na krzywych eliptycznych, DLP dotyczy cyklicznej \\
 grupy addytywnej $(\mathbb{E},+)$ zdefiniowanej na krzywej eliptycznej.
 Aby utworzyć taką grupę, wybieramy punkt $P$ na krzywej eliptycznej $\mathbb{E}$,
 który będzie generatorem grupy. Wtedy grupa addytywna $\mathbb{E}$ jest generowana przez
@@ -167,7 +171,7 @@ kolejne \textit{potęgi} punktu $P$:
 W takim przypadku, ponieważ operacją na grupie jest dodawanie modulo n, to działanie
 potęgowania przedstawia się jako zwielokrotnienie punktu $P$:
 \[x \cdot P = Q \textrm{ (mod } n)\]
-Analogicznie do problemu logarytmu dyskretnego na grupach multiplikacyjnych,
+Analogicznie do problemu logarytmu dyskretnego na grupach multiplikatywnych,
 problem logarytmu dyskretnego na krzywej eliptycznej polega na znalezieniu
 $x$.
 \par
@@ -213,11 +217,11 @@ $$
         (R + Q, a + 1, b) & \text{if } R \in S_3,
     \end{cases}
 $$
-$S_1 \cup S_2 \cup S_3$ jest podziałem $\mathbb{E}$ na trzy podzbiory, które powinny być podobnej wielkości.
+natomiast $S_1 \cup S_2 \cup S_3$ jest podziałem $\mathbb{E}$ na trzy podzbiory, które powinny być podobnej wielkości.
 Ponieważ $R$ jest punktem na krzywej eliptycznej a nie liczbą całkowitą, często stosowanym sposobem
 podziału różnych wartości $R$ na trzy zbiory, jest obliczanie operacji modulo $3$ ze współrzędnej $x$.
-Aby z kolejno obliczanych trójek znaleźć kolizję punktów, często stosuje się algorytm poszukiwania cyklu Floyd'a.
-W takim przypadku, obliczamy w każdej iteracji obliczamy trójki: $(R_i, a_i, b_i)$ oraz $(R_{2i}, a_{2i}, b_{2i})$, aż do znalezienia
+Aby z kolejno obliczanych trójek znaleźć kolizję punktów, zazwyczaj stosuje się algorytm poszukiwania cyklu Floyd'a.
+W takim przypadku, w każdej iteracji oblicza się trójki: $(R_i, a_i, b_i)$ oraz $(R_{2i}, a_{2i}, b_{2i})$, aż do znalezienia
 kolizji $R_i = R_{2i}$.
 
 \par
@@ -232,16 +236,16 @@ w poszukiwaniu \textit{punktów wyróżnionych}. Gdy znajdą taki punkt, przeka
 który odpowiada za gromadzenie znalezionych punktów wyróżnionych oraz poszukiwanie kolizji między nimi.
 \par
 Cecha określająca czy dany punkt na krzywej jest wyróżniony, powinna być łatwo weryfikowalna i tania obliczeniowo,
-ponieważ sprawdzenie czy dany punkt jest wyróżniony, występuje w każdej iteracji algorytmu. \\
+ponieważ sprawdzenie czy dany punkt jest wyróżniony, występuje w każdej iteracji algorytmu.
+\par
 Często wybieranym sposobem sprawdzenia czy punkt jest wyróżniony, jest obliczenie ilości zer na początku lub na końcu
 reprezentacji bitowej jednej ze współrzędnych punktu. Różny dobór tej cechy wpływa na pamięć oraz
 czas wymagany do znalezienia kolizji. Bardzo szeroki zakres punktów które spełniają kryteria bycia wyróżnionymi,
 spowoduje bardzo szybkie zapełnienie pamięci centralnego serwera a za wąski spowoduje, że czas do znalezienie kolizji się wydłuży.
 
 \subsubsection{Adding Walk}
-
-Adding Walk jest modyfikacją funkcji iteracyjnej $f$ używanej w algorytmie Rho Pollard’a 
-do obliczania kolejnych punktów na krzywej eliptycznej. Funkcja ta opiera się 
+Adding Walk jest modyfikacją funkcji iteracyjnej $f$ używanej w algorytmie Rho Pollard’a
+do obliczania kolejnych punktów na krzywej eliptycznej \cite{Teske2000}. Funkcja ta opiera się 
 na dodawaniu w każdej iteracji punktów z predefiniowanej tablicy punktów, co 
 zapewnia wysoką efektywność oraz równomierny rozkład iteracji w grupie. Wprowadzenie 
 Adding Walk, jak pokazano w pracy Teske \cite{Teske2000}, poprawia wydajność w 
@@ -251,7 +255,7 @@ przypadku równoległych obliczeń, takich jak te wykonywane na GPU.
 Niech $W_0 = nP$ będzie punktem startowym, gdzie $n$ to znana wielokrotność 
 generatora grupy $P$. Funkcja iteracyjna $f$ jest zdefiniowana jako odwzorowanie 
 $f: \langle P \rangle \rightarrow \{1, \ldots, s\}$ o możliwie równomiernym 
-rozkładzie. Następnie definiujemy tablicę predefiniowanych punktów:
+rozkładzie. Następnie należy zdefiniować tablicę predefiniowanych punktów:
 $$
 R_i = c_i P + d_i Q, \quad \text{dla } 0 \leq i \leq s - 1,
 $$

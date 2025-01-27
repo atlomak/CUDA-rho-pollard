@@ -46,14 +46,14 @@
 \kierunek{Telekomunikacja}
 \specjalnosc{Techniki Teleinformatyczne}
 \title{
-    Akceleracja sprzętowa kryptoanalizy algorytmów kryptograficznych
+    Akceleracja kryptoanalizy ECDLP przy użyciu GPU
 }
 \engtitle{ % Tytuł po angielsku do angielskiego streszczenia
-    Hardware acceleration of cryptoanalysis of cryptograhpic algorithms
+    Acceleration of ECDLP Cryptanalysis Using GPUs
 }
 \author{Andrzej Tłomak}
 \album{311450}
-\promotor{dr. hab. inż. Mariusz Rawski}
+\promotor{dr hab. inż. Mariusz Rawski}
 \date{\the\year}
 \maketitle
 
@@ -61,52 +61,55 @@
 % Streszczenie po polsku
 %--------------------------------------
 \streszczenie
-Cel pracy
-\slowakluczowe Krzywe eliptyczne, Kryptografia, Kryptoanaliza, CUDA, Algorytm~rho~Pollard'a
+Problem logarytmu dyskretnego na krzywych eliptycznych (ECDLP) stanowi podstawę
+bezpieczeństwa wielu współczesnych systemów kryptograficznych.
+Ze względu na jego wysoką złożoność obliczeniową,
+próby złamania ECDLP często wymagają zastosowania wyspecjalizowanego sprzętu w celu akceleracji obliczeń.
+W niniejszej pracy zaprezentowano implementację systemu rozwiązującego ECDLP
+z wykorzystaniem GPU oraz technologii CUDA.
+System został zoptymalizowany do działania na krzywej ECCp79 z Certicom Challenge,
+osiągając wydajność na poziomie 87,7 miliona operacji na sekundę,
+co pozwala na rozwiązanie problemu ECDLP na krzywej ECCp79 w ciągu 3 godzin.
+\slowakluczowe Krzywe eliptyczne, ECDLP, Kryptoanaliza, CUDA, Algorytm~rho~Pollard'a
 \newpage
 
 %--------------------------------------
 % Streszczenie po angielsku
 %--------------------------------------
 \abstract
-The objective of this phase included a review of the literature describing the current State-of-Art \
-in cryptoanalysis of systems \
-based on Elliptic curves in Finite Fields. It involved getting deeper knowledge of theory
-and mathematical fundation of Elliptic curves as well as setting up an environment
-to develop implementation utillizing CUDA technology.
-\keywords Elliptic curves, Cryptography, Cryptoanalysis, CUDA, FPGA, rho~Pollard~algorithm
+The discrete logarithm problem on elliptic curves (ECDLP) forms the foundation of
+security for many modern cryptographic systems.
+Due to its high computational complexity, attempts to break ECDLP often
+require specialized hardware to accelerate computations.
+This paper presents the implementation of a system for solving ECDLP using GPU acceleration and CUDA technology.
+The system has been optimized for the ECCp79 curve from the Certicom Challenge,
+achieving a performance of 87.7 million operations per second,
+enabling the ECDLP over ECCp79 curve to be solved within 3 hours.
+\keywords Elliptic curves, ECDLP, Cryptoanalysis, CUDA, rho~Pollard~algorithm
 \newpage
-
-%--------------------------------------
-% Oświadczenie o autorstwie
-%--------------------------------------
-\makeauthorship
-\blankpage
 
 %--------------------------------------
 % Spis treści
 %--------------------------------------
-%\thispagestyle{empty}
+\thispagestyle{empty}
 \tableofcontents
-%\blankpage
+% \blankpage
 
-% Listing ustawienia
-% \lstset{
-%     language=C,                     % Use 'C' for CUDA as a base
-%     basicstyle=\ttfamily\small,     % Font size and type
-%     keywordstyle=\color{blue},      % Keywords in blue
-%     commentstyle=\color{green},     % Comments in green
-%     stringstyle=\color{red},        % Strings in red
-%     frame=single,                   % Frame around the code
-%     numbers=left,                   % Add line numbers on the left
-%     numberstyle=\tiny,              % Line number font size
-%     stepnumber=1,                   % Line number increment
-%     tabsize=4,                      % Set tab size
-%     breaklines=true,                % Enable line breaking
-%     showspaces=false,               % Don't show spaces
-%     showstringspaces=false,         % Don't show spaces in strings
-%     captionpos=b,                   % Caption position at bottom
-% }
+\lstset{
+    language=C,                     % Use 'C' for CUDA as a base
+    basicstyle=\ttfamily\small,     % Font size and type
+    keywordstyle=\color{blue},      % Keywords in blue
+    commentstyle=\color{grey},     % Comments in green
+    stringstyle=\color{green},        % Strings in red
+    numbers=left,                   % Add line numbers on the left
+    numberstyle=\tiny,              % Line number font size
+    stepnumber=1,                   % Line number increment
+    tabsize=4,                      % Set tab size
+    breaklines=true,                % Enable line breaking
+    showspaces=false,               % Don't show spaces
+    showstringspaces=false,         % Don't show spaces in strings
+    captionpos=b,                   % Caption position at bottom
+}
 
 %--------------------------------------
 % Rozdziały

@@ -1,36 +1,50 @@
-\newpage
-\section{Podsumowanie oraz dalsze usprawnienia}
+\newpage  
+\section{Podsumowanie oraz dalsze usprawnienia}  
+Celem tej pracy było zaimplementowanie systemu,
+który z wykorzystaniem GPU jest w stanie rozwiązać ECDLP na ECCp79 w jak najkrótszym czasie.
+Praca spełniła wszystkie założone cele, osiągając przy tym satysfakcjonujące wyniki.
+Poprawne rozwiązanie wyzwania Certicom, przy jednoczesnym osiągnięciu wydajności porównywalnej z  
+podobnymi pracami, stanowi istotny sukces.
+Realizacja pracy pozwoliła na zgłębienie zagadnień związanych ze współczesną  
+kryptografią, jej praktyczną implementacją oraz technikami  
+akceleracji obliczeń z wykorzystaniem GPU.  
 
-Realizacja pracy pozwoliła mi na zgłębienie zagadnień związanych ze
-współczesną kryptografią oraz jej praktyczną implementację. Dodatkowo,
-poznałem techniki akceleracji obliczeń z wykorzystaniem GPU. Efekty mojej pracy
-uważam za satysfakcjonujące, ponieważ udało się zrealizować wszystkie
-założone cele. Obliczenie poprawnego rozwiązania dla wyzwania Certicom,
-osiągając wydajność porównywalną z podobnymi pracami, uważam za spory sukces,
-biorąc pod uwagę, że była to moja pierwsza styczność z technologią CUDA oraz
-kryptografią opartą o krzywe eliptyczne. W pracy pozostaje jednak miejsce na
-potencjalne optymalizacje i usprawnienia.
+Wyniki zademonstrowane w pracy pokazały, że GPU umożliwia osiągnięcie
+wysokiej wydajności w obliczeniach kryptograficznych.
+Pomimo rosnącej mocy obliczeniowej,
+rozmiar kluczy stosowanych we współczesnej kryptografii nadal zapewnia
+odpowiedni poziom bezpieczeństwa. W efekcie złamanie kryptosystemów opartych na
+ECC w rozsądnym czasie, nawet wykorzystując wiele układów GPU, pozostaje praktycznie niemożliwe.
 
-Wykorzystanie lżejszych bibliotek niż pakiet SageMath pozwoliłoby na
-łatwiejsze uruchomienie rozwiązania na innych platformach, bez potrzeby
-czasochłonnej kompilacji całego pakietu obliczeniowego, którego znaczna
-część nie jest wykorzystywana.
-Zastosowanie redukcji Barrett'a do operacji dzielenia modulo $p$ pozwoliłoby
-jeszcze bardziej zwiększyć wydajność obliczeń na ciele. Ponieważ wszystkie
-obliczenia są wykonywane na tych samych parametrach ciała, przeliczenie
-specjalnej wartości wymaganej przez tę technikę odbyłoby się tylko raz na
-początku obliczeń.
-
+\subsection{Krytyczna ocena oraz dalsze usprawnienia}
+Pomimo uzyskania zadowalających wyników,
+w pracy nadal pozostaje przestrzeń na dalsze optymalizacje i usprawnienia.
+\par
+Zastosowanie lżejszych bibliotek niż pakiet SageMath mogłoby uprościć  
+uruchamianie rozwiązania na innych platformach, eliminując konieczność  
+czasochłonnej kompilacji rozbudowanego pakietu obliczeniowego, którego znaczna  
+część pozostaje niewykorzystana.
+\par
+Wprowadzenie redukcji Barrett'a do operacji  
+dzielenia modulo $p$ w programie GPU, mogłoby dodatkowo zwiększyć wydajność obliczeń w ciele.  
+Ponieważ wszystkie operacje wykonywane są na tych samych parametrach ciała,
+przeliczenie specjalnej wartości wymaganej przez tę technikę byłoby konieczne 
+jedynie na początku obliczeń, znacznie upraszczając implementację.
+Dodatkowo, odpowiednie zastosowanie Negation Map, pozwoliłoby znacząco skrócić czas obliczeń.
+Jednak zaimplementowanie tej techniki, nie jest trywialne w architekturze SIMD \cite{Negation}.
+\par
 Kolejnym miejscem na potencjalne usprawnienia jest optymalizacja wykorzystania 
 rejestrów w kernel'u CUDA. Obecna implementacja ma niewielką liczbę rejestrów,
-które musiały być przerzucone przez kompilator do wolniejszej pamięci
+które musiały być przeniesione przez kompilator do wolniejszej pamięci
 globalnej. Prawdopodobnie uważna optymalizacja oraz dokładniejsza analiza z
 pomocą profiler'a \textit{NVIDIA Nsight Systems} pozwoliłaby zredukować ilość
-"rozlanych" rejestrów, ograniczając narzut związany z niższą
+\textit{spilled registers}, ograniczając narzut związany z niższą
 przepustowością pamięci globalnej, oraz zmniejszyć liczbę rozgałęzień w kodzie.
-
-Praca pokazała, że GPU umożliwia osiągnięcie wysokiej wydajności w obliczeniach
-kryptograficznych, jednak pomimo rosnącej mocy obliczeniowej oraz wysokiej dostępności
-GPU, rozmiar kluczy stosowanych we współczesnej kryptografii nadal zapewnia
-odpowiedni poziom bezpieczeństwa. W efekcie złamanie kryptosystemów opartych na
-ECC w rozsądnym czasie pozostaje praktycznie niemożliwe.
+\par
+Mniej istotnym z punktu widzenia wydajności (obliczeniowej),
+ale możliwym do poprawy miejscem, jest organizacja kodu.
+Z racji \textit{jednorazowego} charakteru tej implementacji,
+czystość i struktura kodu nie była priorytetem podczas jej rozwoju.
+Osoba bardziej doświadczona w środowisku programowania C++ oraz CUDA, prawdopodobnie
+znalazłaby kilka miejsc, w których zastosowanie innego podejścia dałoby lepsze rezultaty
+oraz ułatwiłoby potencjalną modyfikację.
