@@ -28,7 +28,6 @@ typedef struct
     uint32_t zeros_count;
 } EC_parameters;
 
-// Funkcja dodawania dwóch punktów na krzywej eliptycznej
 __device__ void add_points(EC_point *a, EC_point *b, EC_point *c, bn *Pmod, bn *montgomery_inv);
 
 #endif // EC_POINT_OPERATIONS_H
