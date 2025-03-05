@@ -6,7 +6,7 @@ This project was my final project/thesis for a BSc at Warsaw University of Techn
 It is an implementation of a system for solving the _Elliptic Curve Discrete Logarithm Problem (ECDLP)_
 using GPU acceleration with CUDA. It is designed for the **ECCp79 curve**
 from the Certicom Challenge, achieving **87.7 million operations per second**,
-solving the problem in approximately **3 hours** on an **Nvidia GTX 2070 Super**
+solving the problem in approximately **3 hours** on an **Nvidia RTX 2070 Super**
 
 ## Features
 
@@ -29,7 +29,7 @@ CUDA code and Python using the _ctypes_ library.
 - **Python 3.11+**
 - **SageMath**
 
-Note that the code is designed and optimized for my GPU (GTX 2070 Super).
+Note that the code is designed and optimized for my GPU (RTX 2070 Super).
 
 ## Usage
 
