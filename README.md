@@ -34,8 +34,7 @@ Note that the code is designed and optimized for my GPU (GTX 2070 Super).
 ## Usage
 
 1. **Compile** the CUDA code using `CMake`.
-2. **Run the server** to manage computations.
-3. **Start GPU clients** to perform cryptanalysis.
+2. **Run the server** to manage computations. `sage -python ./main.py`
 4. **Obtain results** – the system outputs the recovered discrete logarithm.
 
 ## Interesting optimizations
