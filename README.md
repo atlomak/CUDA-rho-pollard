@@ -98,9 +98,9 @@ done with the same number of points.
 The achieved results match are very close to the theoretical expectations.
 Expected number of accumulated distinguish points, before finding collision is given
 be the equation:
-$$
+```math
 \frac{\sqrt{\pi*2^{79}}/2}{2^{20}} \sim 929262.5811
-$$
+```
 The results from 5 trails (running whole setup at nights is too loud to make more :)), with
 setup:
 - `OS`: openSUSE Tumbleweed 20240812
